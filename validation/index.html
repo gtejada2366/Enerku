@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Validación — Solar Optimizer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f5f5f3;--bg3:#eeede8;
+  --text:#1a1a1a;--text2:#666;--text3:#999;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.25);
+  --green:#27500A;--green-bg:#EAF3DE;--green-mid:#3B6D11;
+  --amber:#633806;--amber-bg:#FAEEDA;
+  --red:#791F1F;--red-bg:#FCEBEB;
+  --blue:#0C447C;--blue-bg:#E6F1FB;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+.app{max-width:1100px;margin:0 auto;padding:24px 16px}
+h1{font-size:20px;font-weight:500;margin-bottom:4px}
+h2{font-size:14px;font-weight:500;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
+.subtitle{font-size:13px;color:var(--text2);margin-bottom:12px}
+.card{border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px}
+.disclaimer{background:var(--bg2);font-size:12px;color:var(--text2);line-height:1.55}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;flex:1;min-width:140px;gap:4px}
+label{font-size:12px;color:var(--text2)}
+input,select,textarea{height:34px;border:0.5px solid var(--border2);border-radius:var(--radius);padding:0 10px;font-size:13px;background:var(--bg);color:var(--text);width:100%;font-family:inherit}
+textarea{height:auto;padding:8px 10px;min-height:120px;font-family:'SF Mono',Menlo,Consolas,monospace;font-size:11px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--green-mid);outline-offset:1px}
+button.run{padding:8px 20px;background:var(--green-mid);color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer}
+button.run:hover{background:var(--green)}
+button.run:disabled{opacity:.5;cursor:not-allowed}
+button.alt{background:var(--bg2);color:var(--text)}
+button.alt:hover{background:var(--bg3)}
+.status{font-size:12px;color:var(--text2);margin-top:8px}
+.prog{height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
+.prog-f{height:100%;background:var(--green-mid);border-radius:2px;transition:width .25s}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px}
+.mc{background:var(--bg2);border-radius:var(--radius);padding:10px 12px}
+.mc-l{font-size:11px;color:var(--text2);margin-bottom:2px;text-transform:uppercase;letter-spacing:.4px}
+.mc-v{font-size:18px;font-weight:500}
+.mc-s{font-size:10px;color:var(--text3)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;font-weight:500;font-size:11px;color:var(--text2);border-bottom:0.5px solid var(--border);text-transform:uppercase;letter-spacing:.4px}
+td{padding:8px 10px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+tbody tr:hover{background:var(--bg2)}
+.bx{display:inline-block;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:500}
+.bg{background:var(--green-bg);color:var(--green)}
+.bm{background:var(--amber-bg);color:var(--amber)}
+.bl{background:var(--red-bg);color:var(--red)}
+.bi{background:var(--blue-bg);color:var(--blue)}
+.delta{font-variant-numeric:tabular-nums;font-weight:500}
+.delta.pos{color:var(--green)}
+.delta.neg{color:var(--red)}
+.muted{color:var(--text3);font-size:11px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+header a{color:var(--text2);font-size:12px;text-decoration:none}
+header a:hover{color:var(--text)}
+footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;padding-top:16px;border-top:0.5px solid var(--border)}
+.hidden{display:none}
+.tip{font-size:11px;color:var(--text2);background:var(--bg2);padding:6px 10px;border-radius:var(--radius);border-left:2px solid var(--green-mid);margin-bottom:10px}
+.suggest-block{background:var(--green-bg);border:0.5px solid #C0DD97;border-radius:var(--radius);padding:10px 12px;margin-top:10px;font-size:12px;line-height:1.6}
+.suggest-block code{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:11px;background:#fff;padding:1px 6px;border-radius:3px;border:0.5px solid var(--border)}
+.history-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:12px}
+.history-row:last-child{border-bottom:none}
+.history-ts{flex:0 0 140px;color:var(--text2);font-variant-numeric:tabular-nums}
+.history-metric{flex:0 0 90px;font-variant-numeric:tabular-nums}
+details summary{cursor:pointer;color:var(--text2);font-size:12px;padding:4px 0;user-select:none}
+details summary:hover{color:var(--text)}
+details[open] summary{margin-bottom:8px}
+.delete-btn{color:var(--red);font-size:11px;text-decoration:underline;cursor:pointer;background:none;border:none;padding:0}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Validación &amp; calibración</h1>
+      <p class="subtitle">Compara la calculadora contra sitios de referencia documentados, propone ajustes y trackea la calibración a lo largo del tiempo.</p>
+    </div>
+    <a href="../public/">← Volver al app</a>
+  </header>
+
+  <div class="card disclaimer" id="disclaimer">Cargando…</div>
+
+  <div class="card">
+    <h2>1. Validación contra sitios de referencia</h2>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+      <button class="run" id="btn-run">Ejecutar validación</button>
+      <span class="status" id="status">Listo. Pulsa para validar.</span>
+      <span class="muted" id="site-count" style="margin-left:auto"></span>
+    </div>
+    <div class="prog"><div class="prog-f" id="prog" style="width:0%"></div></div>
+
+    <div id="results-section" class="hidden" style="margin-top:14px">
+      <div class="metrics">
+        <div class="mc"><div class="mc-l">Sitios</div><div class="mc-v" id="m-count">—</div><div class="mc-s">total / OK</div></div>
+        <div class="mc"><div class="mc-l">MAE</div><div class="mc-v" id="m-mae">—</div><div class="mc-s">kWh/kWp · |Δ|</div></div>
+        <div class="mc"><div class="mc-l">Sesgo</div><div class="mc-v" id="m-bias">—</div><div class="mc-s">kWh/kWp · medio</div></div>
+        <div class="mc"><div class="mc-l">% error medio</div><div class="mc-v" id="m-mape">—</div><div class="mc-s">MAPE</div></div>
+        <div class="mc"><div class="mc-l">Región acertada</div><div class="mc-v" id="m-region">—</div><div class="mc-s">match / N</div></div>
+      </div>
+
+      <div id="suggest-slot"></div>
+
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>Sitio</th>
+            <th>Coords</th>
+            <th>Esperado</th>
+            <th>Calculado</th>
+            <th>Δ</th>
+            <th>% err</th>
+            <th>Estado</th>
+          </tr></thead>
+          <tbody id="vbody"></tbody>
+        </table>
+      </div>
+
+      <div class="muted" style="margin-top:10px;line-height:1.6">
+        <strong>Cómo leer:</strong> Δ = calculado − esperado · % err = |Δ|/esperado · verde ≤ 10 %, ámbar 10–15 %, rojo &gt; 15 %.
+        Sesgo medio cerca de 0 = calibrado. Sesgo positivo consistente = calculadora sobreestima.<br>
+        <strong>Sesgo esperado PVGIS vs GSA:</strong> los <code>expectedAnnualYield</code> en el dataset
+        provienen mayormente de Global Solar Atlas (Solargis), pero la calculadora usa PVGIS (NSRDB para América).
+        Las dos fuentes divergen sistemáticamente ~5–15 % en Perú: GSA tiende a ser más optimista para sierra
+        andina y selva alta, PVGIS más conservador. Un sesgo de −150 a −250 kWh/kWp en este run no significa
+        que la calculadora esté rota — refleja la diferencia de datasets satelitales. Para validación absoluta
+        rigurosa, importá datos COES/SENAMHI medidos vía CSV en la sección 3.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Calibración manual desde sitio conocido</h2>
+    <div class="tip">Si conocés el yield real medido de un sitio (ej. una planta PV en operación, un proyecto SENAMHI con data terrestre), ingresá las coordenadas y el yield → la calculadora propone el factor soiling ajustado.</div>
+    <div class="row" style="margin-bottom:8px">
+      <div class="field"><label>Nombre / referencia</label><input type="text" id="cal-name" placeholder="ej. Planta XYZ"></div>
+      <div class="field"><label>Latitud</label><input type="number" id="cal-lat" step="0.001" placeholder="-13.5"></div>
+      <div class="field"><label>Longitud</label><input type="number" id="cal-lng" step="0.001" placeholder="-71.9"></div>
+      <div class="field"><label>Yield medido (kWh/kWp/año)</label><input type="number" id="cal-yield" step="10" placeholder="2150"></div>
+    </div>
+    <button class="run" id="btn-calibrate">Calcular factor sugerido</button>
+    <div id="cal-result" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. Importar sitios adicionales (CSV)</h2>
+    <div class="tip">
+      Pegá filas en formato:
+      <code style="background:#fff;padding:1px 4px;border-radius:3px">name,lat,lng,elev,region,expectedYield,source</code>
+      &nbsp;— elev opcional, region en costa/sierra/selva. Los sitios se guardan en localStorage y se incluyen en la próxima validación.
+    </div>
+    <textarea id="csv-input" placeholder="Trujillo Norte,-8.05,-79.10,30,costa,1980,COES Anuario 2024
+Cusco Sur,-13.55,-71.95,3450,sierra,1900,Mediciones SENAMHI 2023"></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button class="run" id="btn-import">Importar al dataset</button>
+      <button class="run alt" id="btn-clear-imports">Limpiar custom</button>
+      <span class="muted" id="import-status" style="margin-left:auto;align-self:center"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>5. Calibración contra plantas COES (ground truth)</h2>
+    <div class="tip">
+      Generación REAL medida de plantas operando en el SEIN. Más confiable que GSA
+      porque ancla en datos físicos, no satelitales. Datos pre-poblados son
+      <strong>aproximaciones</strong> de fuentes públicas (probablemente PPA contratado);
+      reemplazá con valores del último
+      <a href="https://www.coes.org.pe/portal/publicaciones/anuario/" target="_blank">Anuario COES</a>
+      o de Estadísticas de Operación.
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.55">
+      <strong>Limitación geográfica:</strong> casi todas las plantas SEIN-PV están en costa sur
+      (Moquegua/Tacna/Arequipa). Esto calibra <code>SOILING_BY_REGION.costa</code> con
+      ground truth, pero <strong>no valida sierra ni selva</strong>.<br>
+      <strong>Normalización automática:</strong> degradación 0.5%/año + LID 1% + tracking ÷1.20
+      sobre fijo. El "yield normalizado" es lo que daría un sistema fijo nuevo equivalente.
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Planta</th>
+          <th>Coords</th>
+          <th>kWp DC</th>
+          <th>Mont.</th>
+          <th>COD</th>
+          <th>MWh/año <span class="muted" style="font-weight:400;text-transform:none">(editable)</span></th>
+          <th>Año dato</th>
+        </tr></thead>
+        <tbody id="coes-tbody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="run" id="btn-coes-validate">Validar contra PVGIS</button>
+      <button class="run alt" id="btn-coes-save">Guardar inputs</button>
+      <button class="run alt" id="btn-coes-reset">Reset a defaults</button>
+      <span class="muted" id="coes-status" style="margin-left:auto;align-self:center"></span>
+    </div>
+    <div id="coes-result" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card">
+    <h2>4. Historial de validaciones</h2>
+    <details>
+      <summary id="history-summary">Ningún historial registrado</summary>
+      <div id="history-list"></div>
+      <div style="margin-top:8px;text-align:right">
+        <button class="delete-btn" id="btn-clear-history">Borrar historial</button>
+      </div>
+    </details>
+  </div>
+
+  <footer>
+    Solar Optimizer · Validación · referencias: PVGIS, Global Solar Atlas, MINEM, COES, SENAMHI · datos del usuario en localStorage
+  </footer>
+</div>
+
+<script type="module">
+import { fetchPVGIS } from '../src/api/pvgis.js';
+import { fetchHistorical } from '../src/api/openmeteo.js';
+import { fetchElevations } from '../src/api/elevation.js';
+import { detectRegion, regionLabel } from '../src/core/region.js';
+import {
+  applySoiling, regionalFallback, withRetry,
+  suggestCalibration, aggregateCalibrations, SOILING_BY_REGION,
+  normalizePlantYield, suggestFromCOES,
+} from '../src/core/calibration.js';
+
+const $ = id => document.getElementById(id);
+
+const HISTORY_KEY = 'solar-validation-history';
+const CUSTOM_SITES_KEY = 'solar-custom-sites';
+const COES_INPUTS_KEY = 'solar-coes-inputs';
+
+let dataset = null;       // sitios incluidos (built-in)
+let customSites = [];     // sitios añadidos por el usuario
+let coesData = null;      // metadata de plantas COES
+
+/* ─────────── carga de datos ─────────── */
+async function loadDataset() {
+  try {
+    const res = await fetch('./sites.json');
+    dataset = await res.json();
+    $('disclaimer').textContent = dataset.disclaimer;
+  } catch (err) {
+    $('disclaimer').textContent = 'Error cargando sites.json: ' + err.message;
+    throw err;
+  }
+}
+
+function loadCustomSites() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_SITES_KEY);
+    customSites = raw ? JSON.parse(raw) : [];
+  } catch { customSites = []; }
+  refreshSiteCount();
+}
+
+function refreshSiteCount() {
+  const total = (dataset?.sites?.length || 0) + customSites.length;
+  $('site-count').textContent = `${total} sitios (${dataset?.sites?.length || 0} built-in${customSites.length ? ' + ' + customSites.length + ' custom' : ''})`;
+  $('import-status').textContent = customSites.length
+    ? `${customSites.length} sitios custom cargados`
+    : 'Sin sitios custom';
+}
+
+/* ─────────── validación core ─────────── */
+async function validateOne(site) {
+  let elev = site.elev;
+  if (elev == null || isNaN(elev)) {
+    const elevs = await fetchElevations([{ lat: site.lat, lng: site.lng }]);
+    elev = elevs[0];
+  }
+  const regionInfo = detectRegion(site.lat, site.lng, elev);
+
+  // PVGIS va por allorigins.win (PVGIS no tiene CORS); el proxy puede tener
+  // cold start o throttling, así que damos 4 reintentos con backoff largo.
+  const irrRes = await withRetry(() => fetchPVGIS(site.lat, site.lng, 1, 12), 3, 500)
+              || await withRetry(() => fetchHistorical(site.lat, site.lng, 1, 12), 2, 300)
+              || regionalFallback(regionInfo.region, 1, 12);
+
+  const isFallback = irrRes.source && irrRes.source.startsWith('est.');
+  const adjusted = isFallback ? irrRes : applySoiling(irrRes, regionInfo.region);
+
+  return {
+    site,
+    elev,
+    regionInfo,
+    irrRes: adjusted,
+    expectedYield: site.expectedAnnualYield,
+    delta: Math.round((adjusted.val - site.expectedAnnualYield) * 10) / 10,
+    pctErr: Math.round(Math.abs(adjusted.val - site.expectedAnnualYield) / site.expectedAnnualYield * 1000) / 10,
+    regionMatch: regionInfo.region === site.expectedRegion,
+  };
+}
+
+function renderRow(r, ok, warn) {
+  const sign = r.delta > 0 ? '+' : '';
+  const deltaCls = r.delta > 0 ? 'pos' : 'neg';
+  const stateBadge = r.pctErr <= ok ? '<span class="bx bg">OK</span>'
+                   : r.pctErr <= warn ? '<span class="bx bm">aceptable</span>'
+                   : '<span class="bx bl">desviado</span>';
+  const regBadge = r.regionMatch
+    ? `<span class="bx bg">${regionLabel(r.regionInfo.region)}</span>`
+    : `<span class="bx bl">${regionLabel(r.regionInfo.region)}</span>`;
+  const expRegBadge = `<span class="bx bi">${regionLabel(r.site.expectedRegion)}</span>`;
+  const userTag = r.site.userAdded ? ' <span class="bx bm">custom</span>' : '';
+  return `<tr>
+    <td><strong>${escape(r.site.name)}</strong>${userTag}<br><span class="muted">${escape(r.site.source || '')}</span></td>
+    <td style="font-family:monospace;font-size:11px">${r.site.lat}, ${r.site.lng}<br><span class="muted">${isNaN(r.elev) ? '—' : Math.round(r.elev) + ' m'}</span></td>
+    <td>${expRegBadge}<br>${r.expectedYield} kWh/kWp</td>
+    <td>${regBadge}<br><strong>${r.irrRes.val}</strong> kWh/kWp <span class="muted">(${r.irrRes.source})</span></td>
+    <td class="delta ${deltaCls}">${sign}${r.delta}</td>
+    <td class="delta">${r.pctErr}%</td>
+    <td>${stateBadge}</td>
+  </tr>`;
+}
+
+function escape(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+function computeMetrics(results) {
+  const n = results.length;
+  if (!n) return null;
+  return {
+    sitesCount: n,
+    okCount: results.filter(r => r.pctErr <= dataset.tolerance.ok).length,
+    mae: results.reduce((a, r) => a + Math.abs(r.delta), 0) / n,
+    bias: results.reduce((a, r) => a + r.delta, 0) / n,
+    mape: results.reduce((a, r) => a + r.pctErr, 0) / n,
+    regionAccuracy: results.filter(r => r.regionMatch).length / n,
+  };
+}
+
+function renderMetrics(m) {
+  $('m-count').textContent = `${m.sitesCount} / ${m.okCount}`;
+  $('m-mae').textContent = m.mae.toFixed(0);
+  $('m-bias').textContent = (m.bias >= 0 ? '+' : '') + m.bias.toFixed(0);
+  $('m-mape').textContent = m.mape.toFixed(1) + '%';
+  $('m-region').textContent = `${Math.round(m.regionAccuracy * m.sitesCount)} / ${m.sitesCount}`;
+}
+
+/* ─────────── Leave-one-out cross-validation ─────────── */
+/**
+ * Para cada sitio: calibrá los factores con los OTROS N-1 sitios, predecí el
+ * held-out con el factor entrenado, registrá el error. El MAE LOO comparado
+ * al MAE in-sample te dice si la calibración generaliza (es decir, si el
+ * "5.7% de error" se mantiene para sitios nuevos no vistos durante calibración).
+ */
+function runLeaveOneOut(results) {
+  // Solo sitios con datos reales de PVGIS/ERA5 (excluir regional fallback)
+  const valid = results.filter(r =>
+    r.irrRes?.soilingFactor && !r.irrRes.source.startsWith('est.')
+  );
+  if (valid.length < 5) return null;
+
+  const loo = [];
+  for (let i = 0; i < valid.length; i++) {
+    const heldOut = valid[i];
+    const trainSet = valid.filter((_, j) => j !== i);
+
+    // Entrenar: factor óptimo por región desde el trainSet
+    const ratios = {};
+    for (const r of trainSet) {
+      const reg = r.regionInfo.region;
+      const raw = r.irrRes.val / r.irrRes.soilingFactor;
+      if (raw <= 0 || r.expectedYield <= 0) continue;
+      (ratios[reg] = ratios[reg] || []).push(r.expectedYield / raw);
+    }
+    const trained = {};
+    for (const [reg, vals] of Object.entries(ratios)) {
+      trained[reg] = vals.reduce((a, b) => a + b, 0) / vals.length;
+    }
+
+    // Predecir held-out con factor entrenado
+    const reg = heldOut.regionInfo.region;
+    const raw = heldOut.irrRes.val / heldOut.irrRes.soilingFactor;
+    const factor = trained[reg];
+    if (!factor || raw <= 0) continue;
+
+    const predicted = raw * factor;
+    const error = predicted - heldOut.expectedYield;
+    loo.push({
+      site: heldOut.site,
+      region: reg,
+      raw: Math.round(raw),
+      factorTrained: Math.round(factor * 1000) / 1000,
+      predicted: Math.round(predicted),
+      expected: heldOut.expectedYield,
+      error: Math.round(error),
+      pctErr: Math.round(Math.abs(error) / heldOut.expectedYield * 1000) / 10,
+    });
+  }
+  if (!loo.length) return null;
+  const mae = loo.reduce((a, r) => a + Math.abs(r.error), 0) / loo.length;
+  const bias = loo.reduce((a, r) => a + r.error, 0) / loo.length;
+  const mape = loo.reduce((a, r) => a + r.pctErr, 0) / loo.length;
+  return { results: loo, metrics: { count: loo.length, mae, bias, mape }, excluded: results.length - loo.length };
+}
+
+function renderLOOPanel(loo, inSampleMetrics) {
+  if (!loo) {
+    return `<div class="suggest-block" style="background:var(--bg2);border-color:var(--border)">
+      <strong>LOO cross-validation no disponible</strong> — necesita ≥5 sitios con datos reales (PVGIS o ERA5).
+      La mayoría cayó a regional fallback.
+    </div>`;
+  }
+  const maeRatio = loo.metrics.mae / Math.max(1, inSampleMetrics.mae);
+  const verdict = maeRatio <= 1.30 ? { txt: 'generaliza bien', cls: 'bg' }
+                : maeRatio <= 1.70 ? { txt: 'generaliza aceptable', cls: 'bm' }
+                :                    { txt: 'OVERFIT — calibración no generaliza', cls: 'bl' };
+
+  const rows = loo.results.map(r => {
+    const sign = r.error > 0 ? '+' : '';
+    const cls = r.error > 0 ? 'pos' : 'neg';
+    return `<tr>
+      <td><strong>${escape(r.site.name)}</strong></td>
+      <td>${r.expected}</td>
+      <td>${r.predicted}</td>
+      <td class="delta ${cls}">${sign}${r.error}</td>
+      <td class="delta">${r.pctErr}%</td>
+      <td><code style="font-size:11px">${r.factorTrained}</code></td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="suggest-block" style="background:var(--bg2);border-color:#9CC4E8;margin-top:10px">
+    <strong>Leave-one-out cross-validation</strong>
+    <span class="bx ${verdict.cls}">${verdict.txt}</span><br>
+    <span style="font-size:11px">Para cada sitio, recalibramos con los <strong>otros N−1</strong> y predecimos el held-out.
+    Si MAE LOO ≈ MAE in-sample, la calibración no es overfitting.</span>
+    <ul style="margin:8px 0 8px 18px">
+      <li>MAE in-sample: <strong>${inSampleMetrics.mae.toFixed(0)}</strong> kWh/kWp</li>
+      <li>MAE LOO: <strong>${loo.metrics.mae.toFixed(0)}</strong> kWh/kWp · ratio <strong>${maeRatio.toFixed(2)}×</strong></li>
+      <li>MAPE LOO: <strong>${loo.metrics.mape.toFixed(1)}%</strong></li>
+      <li>Sesgo LOO: ${loo.metrics.bias >= 0 ? '+' : ''}${loo.metrics.bias.toFixed(0)} kWh/kWp</li>
+      <li>Sitios LOO: ${loo.metrics.count}${loo.excluded > 0 ? ` (${loo.excluded} excluidos por usar regional fallback)` : ''}</li>
+    </ul>
+  </div>
+  <details style="margin-top:6px">
+    <summary>Detalle por sitio (predicciones LOO con factor entrenado)</summary>
+    <div style="overflow-x:auto;margin-top:8px">
+      <table>
+        <thead><tr><th>Sitio</th><th>Esperado</th><th>Predicción LOO</th><th>Δ</th><th>% err</th><th>Factor entrenado</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </details>`;
+}
+
+function renderSuggestion(results) {
+  // Sugerir ajuste de soiling factor por región basado en el bias por región
+  const byRegion = {};
+  for (const r of results) {
+    const reg = r.regionInfo.region;
+    if (!byRegion[reg]) byRegion[reg] = { ratios: [] };
+    if (r.expectedYield > 0 && r.irrRes.val > 0) {
+      byRegion[reg].ratios.push(r.expectedYield / r.irrRes.val);
+    }
+  }
+  const lines = [];
+  for (const [reg, data] of Object.entries(byRegion)) {
+    if (!data.ratios.length) continue;
+    const meanRatio = data.ratios.reduce((a, b) => a + b, 0) / data.ratios.length;
+    const current = SOILING_BY_REGION[reg] ?? SOILING_BY_REGION.unknown;
+    const suggested = Math.round(current * meanRatio * 1000) / 1000;
+    const deltaPct = Math.round((meanRatio - 1) * 1000) / 10;
+    if (Math.abs(deltaPct) >= 2) {
+      lines.push({ reg, current, suggested, deltaPct, n: data.ratios.length });
+    }
+  }
+  if (!lines.length) {
+    $('suggest-slot').innerHTML = `<div class="suggest-block">
+      <strong>✓ Calibración consistente</strong> — los factores soiling actuales producen un sesgo &lt;2 % en todas las regiones con muestras suficientes. No se sugiere cambio.
+    </div>`;
+    return;
+  }
+  const items = lines.map(l => `<li><strong>${regionLabel(l.reg)}</strong>: actual <code>${l.current}</code> → sugerido <code>${l.suggested}</code> (${l.deltaPct > 0 ? '+' : ''}${l.deltaPct} % · n=${l.n})</li>`).join('');
+  const codeBlock = lines.map(l => `  ${l.reg}:   ${l.suggested.toFixed(2)},`).join('\n');
+  $('suggest-slot').innerHTML = `<div class="suggest-block">
+    <strong>Ajustes sugeridos para SOILING_BY_REGION</strong> (basados en este run):
+    <ul style="margin:6px 0 8px 18px">${items}</ul>
+    Para aplicar, editá <code>src/core/calibration.js</code>:
+    <pre style="margin-top:6px;padding:8px;background:#fff;border:0.5px solid var(--border);border-radius:4px;font-size:11px;overflow-x:auto;white-space:pre">export const SOILING_BY_REGION = {
+${codeBlock}
+  ...
+};</pre>
+  </div>`;
+}
+
+/* ─────────── historial ─────────── */
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveToHistory(metrics) {
+  const hist = loadHistory();
+  hist.unshift({
+    ts: Date.now(),
+    metrics,
+    soilingFactors: { ...SOILING_BY_REGION },
+  });
+  // Mantener máximo 20 entradas
+  while (hist.length > 20) hist.pop();
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+  renderHistory();
+}
+
+function renderHistory() {
+  const hist = loadHistory();
+  if (!hist.length) {
+    $('history-summary').textContent = 'Ningún historial registrado';
+    $('history-list').innerHTML = '';
+    return;
+  }
+  $('history-summary').textContent = `${hist.length} run${hist.length === 1 ? '' : 's'} guardado${hist.length === 1 ? '' : 's'} · último: ${formatTs(hist[0].ts)}`;
+  $('history-list').innerHTML = hist.map(h => `
+    <div class="history-row">
+      <span class="history-ts">${formatTs(h.ts)}</span>
+      <span class="history-metric">MAE ${h.metrics.mae.toFixed(0)}</span>
+      <span class="history-metric">Sesgo ${h.metrics.bias >= 0 ? '+' : ''}${h.metrics.bias.toFixed(0)}</span>
+      <span class="history-metric">MAPE ${h.metrics.mape.toFixed(1)}%</span>
+      <span class="history-metric">${h.metrics.okCount}/${h.metrics.sitesCount} OK</span>
+      <span class="muted" style="font-size:10px">soil: c=${h.soilingFactors.costa} s=${h.soilingFactors.sierra} l=${h.soilingFactors.selva}</span>
+    </div>
+  `).join('');
+}
+
+function formatTs(ts) {
+  const d = new Date(ts);
+  return d.toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+/* ─────────── runner ─────────── */
+async function warmupProxy() {
+  // Pre-calentar allorigins.win para evitar fallos en los primeros 5–10
+  // requests por cold start. Llamada trivial a un endpoint pequeño.
+  try {
+    await fetch('https://api.allorigins.win/raw?url=' +
+      encodeURIComponent('https://re.jrc.ec.europa.eu/api/v5_2/PVcalc?lat=-12&lon=-77&peakpower=1&loss=14&outputformat=json&browser=0&aspect=180&optimalinclination=1'));
+  } catch { /* OK si falla, son retries más adelante */ }
+}
+
+async function runValidation() {
+  if (!dataset) await loadDataset();
+  $('btn-run').disabled = true;
+  $('results-section').classList.remove('hidden');
+  $('vbody').innerHTML = '';
+  $('suggest-slot').innerHTML = '';
+
+  $('status').textContent = 'Pre-calentando proxy CORS (allorigins.win)…';
+  await warmupProxy();
+
+  const allSites = [
+    ...dataset.sites,
+    ...customSites.map(s => ({ ...s, userAdded: true })),
+  ];
+  const results = [];
+  const total = allSites.length;
+  for (let i = 0; i < total; i++) {
+    const site = allSites[i];
+    $('status').textContent = `Validando ${i + 1}/${total}: ${site.name}…`;
+    try {
+      const r = await validateOne(site);
+      results.push(r);
+      $('vbody').insertAdjacentHTML('beforeend', renderRow(r, dataset.tolerance.ok, dataset.tolerance.warn));
+    } catch (err) {
+      console.warn('[validate]', site.name, err);
+      $('vbody').insertAdjacentHTML('beforeend',
+        `<tr><td colspan="7" style="color:var(--red)">Error en ${escape(site.name)}: ${escape(err.message || String(err))}</td></tr>`);
+    }
+    $('prog').style.width = Math.round((i + 1) / total * 100) + '%';
+    // Pequeño delay entre requests para no saturar el proxy CORS
+    if (i < total - 1) await new Promise(r => setTimeout(r, 100));
+  }
+
+  if (results.length) {
+    const m = computeMetrics(results);
+    renderMetrics(m);
+    renderSuggestion(results);
+    // Auto-ejecutar LOO sobre los datos cacheados (sin nuevas API calls)
+    const loo = runLeaveOneOut(results);
+    $('suggest-slot').insertAdjacentHTML('beforeend', renderLOOPanel(loo, m));
+    saveToHistory({ ...m, loo: loo?.metrics });
+  }
+  $('status').textContent = `Validación completa: ${results.length}/${total} sitios procesados.`;
+  $('btn-run').disabled = false;
+}
+
+/* ─────────── calibración manual ─────────── */
+async function runCalibration() {
+  const name = $('cal-name').value.trim() || 'sitio';
+  const lat = parseFloat($('cal-lat').value);
+  const lng = parseFloat($('cal-lng').value);
+  const known = parseFloat($('cal-yield').value);
+  if (isNaN(lat) || isNaN(lng) || isNaN(known) || known <= 0) {
+    $('cal-result').innerHTML = '<div class="suggest-block" style="background:var(--red-bg);border-color:#F7C1C1">Completá lat, lng y yield válido.</div>';
+    return;
+  }
+  $('btn-calibrate').disabled = true;
+  $('cal-result').innerHTML = '<span class="muted">Calculando…</span>';
+  try {
+    const elevs = await fetchElevations([{ lat, lng }]);
+    const elev = elevs[0];
+    const regionInfo = detectRegion(lat, lng, elev);
+    const irrRes = await withRetry(() => fetchPVGIS(lat, lng, 1, 12))
+                || await withRetry(() => fetchHistorical(lat, lng, 1, 12))
+                || regionalFallback(regionInfo.region, 1, 12);
+    const isFallback = irrRes.source && irrRes.source.startsWith('est.');
+    const adjusted = isFallback ? irrRes : applySoiling(irrRes, regionInfo.region);
+
+    const sug = suggestCalibration(known, adjusted.val, regionInfo.region);
+    const direction = sug.multiplier > 1 ? 'subestima' : 'sobreestima';
+    const arrow = sug.multiplier > 1 ? '↑' : '↓';
+
+    $('cal-result').innerHTML = `<div class="suggest-block">
+      <strong>${escape(name)}</strong> · región detectada: <strong>${regionLabel(regionInfo.region)}</strong>
+      <ul style="margin:6px 0 8px 18px">
+        <li>Yield medido (vos): <strong>${known}</strong> kWh/kWp</li>
+        <li>Yield calculado (app): <strong>${adjusted.val}</strong> kWh/kWp <span class="muted">(${adjusted.source})</span></li>
+        <li>La calculadora <strong>${direction}</strong> en ${Math.abs(sug.deltaPct)} % ${arrow}</li>
+        <li>Soiling actual para ${regionInfo.region}: <code>${sug.currentSoiling}</code></li>
+        <li>Soiling sugerido: <code>${sug.suggestedSoiling}</code></li>
+      </ul>
+      Para aplicar, edita <code>src/core/calibration.js</code> y cambia <code>${regionInfo.region}: ${sug.currentSoiling}</code> a <code>${regionInfo.region}: ${sug.suggestedSoiling.toFixed(2)}</code>.
+      Si tenés más de un sitio en esta región, considerá promediar antes de cambiar — un solo sitio puede tener factores específicos no replicables.
+    </div>`;
+  } catch (err) {
+    $('cal-result').innerHTML = `<div class="suggest-block" style="background:var(--red-bg);border-color:#F7C1C1">Error: ${escape(err.message || String(err))}</div>`;
+  } finally {
+    $('btn-calibrate').disabled = false;
+  }
+}
+
+/* ─────────── CSV import ─────────── */
+function importCSV() {
+  const raw = $('csv-input').value.trim();
+  if (!raw) {
+    $('import-status').textContent = 'Pegá filas en el textarea.';
+    return;
+  }
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  let imported = 0, errors = 0;
+  for (const line of lines) {
+    const parts = line.split(',').map(p => p.trim());
+    if (parts.length < 6) { errors++; continue; }
+    const [name, latS, lngS, elevS, region, yieldS, ...rest] = parts;
+    const lat = parseFloat(latS), lng = parseFloat(lngS);
+    const elev = elevS ? parseFloat(elevS) : null;
+    const expected = parseFloat(yieldS);
+    if (isNaN(lat) || isNaN(lng) || isNaN(expected) || !['costa', 'sierra', 'selva'].includes(region)) {
+      errors++; continue;
+    }
+    customSites.push({
+      name,
+      lat, lng,
+      elev: isNaN(elev) ? null : elev,
+      expectedRegion: region,
+      expectedAnnualYield: expected,
+      source: rest.join(',') || 'usuario',
+      userAdded: true,
+    });
+    imported++;
+  }
+  localStorage.setItem(CUSTOM_SITES_KEY, JSON.stringify(customSites));
+  $('csv-input').value = '';
+  $('import-status').textContent = `${imported} importados${errors ? ', ' + errors + ' rechazados' : ''}.`;
+  refreshSiteCount();
+}
+
+function clearImports() {
+  if (!confirm('¿Borrar todos los sitios custom?')) return;
+  customSites = [];
+  localStorage.removeItem(CUSTOM_SITES_KEY);
+  refreshSiteCount();
+}
+
+function clearHistory() {
+  if (!confirm('¿Borrar todo el historial de validaciones?')) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+}
+
+/* ─────────── COES plants (sección 5) ─────────── */
+async function loadCoesData() {
+  try {
+    const res = await fetch('./coes-plants.json');
+    coesData = await res.json();
+    return coesData;
+  } catch (err) {
+    console.warn('[COES] no se pudo cargar coes-plants.json:', err);
+    return null;
+  }
+}
+
+function getCoesSavedInputs() {
+  try { return JSON.parse(localStorage.getItem(COES_INPUTS_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function saveCoesInputs() {
+  const inputs = {};
+  document.querySelectorAll('#coes-tbody [data-plant]').forEach(el => {
+    const id = el.dataset.plant;
+    if (!inputs[id]) inputs[id] = {};
+    const v = parseFloat(el.value);
+    if (!isNaN(v)) inputs[id][el.dataset.field] = v;
+  });
+  localStorage.setItem(COES_INPUTS_KEY, JSON.stringify(inputs));
+  $('coes-status').textContent = 'Guardado en localStorage.';
+  setTimeout(() => $('coes-status').textContent = '', 3000);
+}
+
+function renderCoesTable() {
+  if (!coesData) return;
+  const saved = getCoesSavedInputs();
+  $('coes-tbody').innerHTML = coesData.plants.map(p => {
+    const s = saved[p.id] || {};
+    const mwh = s.mwh ?? p.defaultMWh ?? '';
+    const year = s.year ?? p.defaultMWhYear ?? new Date().getFullYear() - 1;
+    const codTxt = p.codYear ? `${p.codMonth ? p.codMonth + '/' : ''}${p.codYear}` : '—';
+    const mountBadge = p.mountingType === 'tracking-1axis'
+      ? '<span class="bx bm">tracking</span>'
+      : p.mountingType === 'fixed'
+      ? '<span class="bx bi">fijo</span>'
+      : '<span class="bx bl">?</span>';
+    const kwpDisp = p.capacityKwpDC ? p.capacityKwpDC.toLocaleString('es-PE') : '—';
+    return `<tr>
+      <td><strong>${escape(p.name)}</strong><br><span class="muted">${escape(p.operator || '')}</span></td>
+      <td style="font-family:monospace;font-size:11px">${p.lat}, ${p.lng}</td>
+      <td>${kwpDisp}</td>
+      <td>${mountBadge}</td>
+      <td>${codTxt}</td>
+      <td><input type="number" data-plant="${p.id}" data-field="mwh" value="${mwh}" placeholder="ej. 32500" style="width:100px;height:28px;padding:0 6px"></td>
+      <td><input type="number" data-plant="${p.id}" data-field="year" value="${year}" min="2012" max="${new Date().getFullYear()}" style="width:70px;height:28px;padding:0 6px"></td>
+    </tr>`;
+  }).join('');
+}
+
+function getCoesInputsLive() {
+  const inputs = {};
+  document.querySelectorAll('#coes-tbody [data-plant]').forEach(el => {
+    const id = el.dataset.plant;
+    if (!inputs[id]) inputs[id] = {};
+    const v = parseFloat(el.value);
+    if (!isNaN(v)) inputs[id][el.dataset.field] = v;
+  });
+  return inputs;
+}
+
+async function runCoesValidation() {
+  if (!coesData) await loadCoesData();
+  if (!coesData) {
+    $('coes-result').innerHTML = '<div class="suggest-block" style="background:var(--red-bg);border-color:#F7C1C1">No se pudo cargar coes-plants.json</div>';
+    return;
+  }
+  const inputs = getCoesInputsLive();
+  const filled = coesData.plants.filter(p => inputs[p.id]?.mwh > 0 && p.capacityKwpDC);
+  if (!filled.length) {
+    $('coes-result').innerHTML = '<div class="tip">Ingresá al menos un valor de MWh/año en una planta con kWp conocido.</div>';
+    return;
+  }
+
+  $('btn-coes-validate').disabled = true;
+  $('coes-status').textContent = `Validando ${filled.length} planta${filled.length === 1 ? '' : 's'}…`;
+
+  const opts = coesData.assumptions || {};
+  const results = [];
+  for (const plant of filled) {
+    const mwh = inputs[plant.id].mwh;
+    const year = inputs[plant.id].year || new Date().getFullYear() - 1;
+    const norm = normalizePlantYield(plant, mwh, year, {
+      annualDegradationPct: opts.annualDegradationPct,
+      lidLossPct: opts.lidLossPct,
+      trackingGain1axis: opts.trackingGain1axis,
+    });
+    if (!norm) continue;
+
+    // PVGIS sin soiling para comparar el yield "raw" del modelo
+    const pvgisRes = await withRetry(() => fetchPVGIS(plant.lat, plant.lng, 1, 12), 3, 500);
+    const pvgisRaw = pvgisRes?.val ?? null;
+    const pvgisCalibrated = pvgisRes
+      ? Math.round(pvgisRes.val * (SOILING_BY_REGION[opts.regionForCalibration || 'costa'] || 1) * 10) / 10
+      : null;
+
+    results.push({
+      plant,
+      mwh,
+      year,
+      norm,
+      pvgisRaw: pvgisRaw ? Math.round(pvgisRaw) : null,
+      pvgisCalibrated: pvgisCalibrated ? Math.round(pvgisCalibrated) : null,
+      delta: pvgisCalibrated ? Math.round(pvgisCalibrated - norm.normalizedYield) : null,
+      pctErr: pvgisCalibrated ? Math.round(Math.abs(pvgisCalibrated - norm.normalizedYield) / norm.normalizedYield * 1000) / 10 : null,
+    });
+  }
+
+  renderCoesResults(results);
+  $('btn-coes-validate').disabled = false;
+  $('coes-status').textContent = `${results.length} plantas validadas.`;
+}
+
+function renderCoesResults(results) {
+  if (!results.length) {
+    $('coes-result').innerHTML = '<div class="tip">Sin resultados.</div>';
+    return;
+  }
+
+  // Tabla detallada
+  const rows = results.map(r => {
+    const sign = r.delta != null && r.delta > 0 ? '+' : '';
+    const cls = r.delta != null ? (r.delta > 0 ? 'pos' : 'neg') : '';
+    const stateBadge = r.pctErr == null ? '<span class="bx bl">PVGIS falló</span>'
+      : r.pctErr <= 7 ? '<span class="bx bg">OK</span>'
+      : r.pctErr <= 15 ? '<span class="bx bm">aceptable</span>'
+      : '<span class="bx bl">desviado</span>';
+    const trackingNote = r.norm.trackingGain > 1 ? ` ÷${r.norm.trackingGain}` : '';
+    return `<tr>
+      <td><strong>${escape(r.plant.name)}</strong><br><span class="muted">${r.norm.age}a · deg ${Math.round((1 - r.norm.degradationFactor) * 100)}%${trackingNote}</span></td>
+      <td>${r.norm.measuredYield} <span class="muted">/ ${r.mwh.toLocaleString('es-PE')} MWh</span></td>
+      <td><strong>${r.norm.normalizedYield}</strong><br><span class="muted">fixed nuevo equiv</span></td>
+      <td>${r.pvgisRaw ?? '—'}<br><span class="muted">PVGIS raw</span></td>
+      <td>${r.pvgisCalibrated ?? '—'}<br><span class="muted">×${SOILING_BY_REGION.costa}</span></td>
+      <td class="delta ${cls}">${sign}${r.delta ?? '—'}</td>
+      <td class="delta">${r.pctErr != null ? r.pctErr + '%' : '—'}</td>
+      <td>${stateBadge}</td>
+    </tr>`;
+  });
+
+  // Sugerencia agregada
+  const valid = results.filter(r => r.pvgisRaw && r.norm?.normalizedYield);
+  const suggestion = suggestFromCOES(valid.map(r => ({
+    normalizedYield: r.norm.normalizedYield,
+    pvgisRaw: r.pvgisRaw,
+  })));
+
+  let suggestBlock = '';
+  if (suggestion) {
+    const current = SOILING_BY_REGION.costa;
+    const delta = suggestion.suggestedFactor - current;
+    const dPct = (delta / current * 100).toFixed(1);
+    const arrow = delta > 0 ? '↑' : delta < 0 ? '↓' : '·';
+    suggestBlock = `<div class="suggest-block">
+      <strong>Calibración costa anclada en ground truth COES (${suggestion.count} plantas):</strong>
+      <ul style="margin:6px 0 8px 18px">
+        <li>Factor actual: <code>${current}</code></li>
+        <li>Factor sugerido: <code>${suggestion.suggestedFactor}</code> ${arrow} ${dPct >= 0 ? '+' : ''}${dPct}%</li>
+        <li>Desviación entre plantas: σ = ${suggestion.stdDev}</li>
+      </ul>
+      ${Math.abs(delta) < 0.03
+        ? '<strong>✓ Tu factor actual es consistente con generación medida COES.</strong> No requiere ajuste.'
+        : `Para anclar a COES, editá <code>src/core/calibration.js</code>:<br>
+           <code style="background:#fff;padding:2px 6px;border-radius:3px">costa: ${suggestion.suggestedFactor}</code>
+           <br><span style="font-size:11px;color:var(--text2)">Nota: solo válido para costa sur extrema (donde están las plantas SEIN). Sierra y selva siguen calibradas vs GSA.</span>`
+      }
+    </div>`;
+  }
+
+  $('coes-result').innerHTML = `${suggestBlock}
+    <div style="overflow-x:auto;margin-top:10px">
+    <table>
+      <thead><tr>
+        <th>Planta</th>
+        <th>Medido</th>
+        <th>Normalizado</th>
+        <th>PVGIS raw</th>
+        <th>PVGIS×soiling</th>
+        <th>Δ</th>
+        <th>% err</th>
+        <th>Estado</th>
+      </tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table>
+    </div>
+    <div class="muted" style="margin-top:8px;line-height:1.6">
+      <strong>Cómo leer:</strong> "Normalizado" es el yield equivalente fixed-tilt sin degradación, derivado de la generación medida.
+      "PVGIS×soiling" es lo que predice tu calculadora (con el factor SOILING_BY_REGION.costa actual).
+      Δ positivo = tu calculadora sobreestima vs realidad medida; negativo = subestima.
+    </div>`;
+}
+
+function resetCoesInputs() {
+  if (!confirm('¿Resetear los inputs COES a los defaults pre-poblados?')) return;
+  localStorage.removeItem(COES_INPUTS_KEY);
+  renderCoesTable();
+  $('coes-result').innerHTML = '';
+  $('coes-status').textContent = 'Inputs reseteados a defaults.';
+  setTimeout(() => $('coes-status').textContent = '', 3000);
+}
+
+/* ─────────── init ─────────── */
+$('btn-run').addEventListener('click', runValidation);
+$('btn-calibrate').addEventListener('click', runCalibration);
+$('btn-import').addEventListener('click', importCSV);
+$('btn-clear-imports').addEventListener('click', clearImports);
+$('btn-clear-history').addEventListener('click', clearHistory);
+$('btn-coes-validate').addEventListener('click', runCoesValidation);
+$('btn-coes-save').addEventListener('click', saveCoesInputs);
+$('btn-coes-reset').addEventListener('click', resetCoesInputs);
+
+await loadDataset();
+loadCustomSites();
+await loadCoesData();
+renderCoesTable();
+renderHistory();
+</script>
+</body>
+</html>

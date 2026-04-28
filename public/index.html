@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solar Optimizer — Puntos óptimos para paneles solares</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f3;--bg3:#eeede8;
+  --text:#1a1a1a;--text2:#666;--text3:#999;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.25);
+  --green:#27500A;--green-bg:#EAF3DE;--green-mid:#3B6D11;
+  --amber:#633806;--amber-bg:#FAEEDA;
+  --red:#791F1F;--red-bg:#FCEBEB;
+  --blue:#0C447C;--blue-bg:#E6F1FB;
+  --purple:#3F2A6B;--purple-bg:#EFE9FA;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+.app{max-width:780px;margin:0 auto;padding:24px 16px}
+h1{font-size:20px;font-weight:500;margin-bottom:4px}
+.subtitle{font-size:13px;color:var(--text2);margin-bottom:24px}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px}
+.section-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;flex:1;min-width:120px;gap:4px}
+label{font-size:12px;color:var(--text2)}
+input,select{height:34px;border:0.5px solid var(--border2);border-radius:var(--radius);padding:0 10px;font-size:13px;background:var(--bg);color:var(--text);width:100%}
+input:focus,select:focus{outline:2px solid var(--green-mid);outline-offset:1px}
+.wgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.w-row{display:flex;flex-direction:column;gap:3px}
+.w-lbl{font-size:11px;color:var(--text2);display:flex;justify-content:space-between}
+input[type=range]{height:auto;border:none;padding:0;accent-color:var(--green-mid)}
+input[type=range]:disabled{opacity:.55;cursor:not-allowed}
+.season-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.stab{padding:4px 12px;font-size:12px;border-radius:99px;cursor:pointer;border:0.5px solid var(--border2);background:transparent;color:var(--text2)}
+.stab.on{background:var(--green-bg);color:var(--green);border-color:#C0DD97;font-weight:500}
+button.run{padding:8px 20px;background:var(--green-mid);color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer}
+button.run:hover{background:var(--green)}
+button.run:disabled{opacity:.5;cursor:not-allowed}
+.status{font-size:12px;color:var(--text2);margin-top:6px}
+.prog{height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+.prog-f{height:100%;background:var(--green-mid);border-radius:2px;transition:width .25s}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:16px}
+.sc{background:var(--bg2);border-radius:var(--radius);padding:10px 12px}
+.sc-l{font-size:11px;color:var(--text2);margin-bottom:2px}
+.sc-v{font-size:17px;font-weight:500}
+.sc-s{font-size:10px;color:var(--text3)}
+.tabs{display:flex;gap:6px;margin-bottom:12px;border-bottom:0.5px solid var(--border);padding-bottom:8px}
+.tab{padding:4px 12px;font-size:12px;border-radius:var(--radius);cursor:pointer;border:0.5px solid transparent;background:transparent;color:var(--text2)}
+.tab.on{background:var(--bg2);color:var(--text);font-weight:500;border-color:var(--border)}
+.map-wrap{border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+#map{height:380px;width:100%;background:#e8eee5}
+.pm-marker{background:transparent;border:none}
+.pm-circle{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:500;font-size:12px;border:1px solid rgba(0,0,0,0.4);box-sizing:border-box;text-shadow:0 1px 1px rgba(0,0,0,0.4)}
+.pm-optimo{background:#3B6D11;border-color:#27500A}
+.pm-bueno{background:#EF9F27;border-color:#BA7517}
+.pm-bajo{background:#F09595;border-color:#E24B4A}
+.pm-top{box-shadow:0 0 0 5px rgba(4,44,83,0.28);border-width:2px}
+.pm-shadow{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#E24B4A;border:1px solid #fff}
+.pm-square{width:14px;height:14px;background:#185FA5;border:1.5px solid #042C53;box-sizing:border-box}
+.pm-tri{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:12px solid #534AB7;filter:drop-shadow(0 1px 0 #26215C)}
+.leaflet-popup-content-wrapper{border-radius:8px}
+.leaflet-popup-content{font-size:12px;margin:10px 12px;line-height:1.45}
+.leaflet-popup-content strong{color:var(--text)}
+.leg{display:flex;gap:12px;flex-wrap:wrap;padding:7px 12px;font-size:11px;color:var(--text2);align-items:center}
+.ld{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:3px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+th{text-align:left;padding:7px 8px;font-weight:500;font-size:11px;color:var(--text2);border-bottom:0.5px solid var(--border)}
+td{padding:7px 8px;border-bottom:0.5px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bx{display:inline-block;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:500}
+.bg{background:var(--green-bg);color:var(--green)}
+.bm{background:var(--amber-bg);color:var(--amber)}
+.bl{background:var(--red-bg);color:var(--red)}
+.bi{background:var(--blue-bg);color:var(--blue)}
+.bp{background:var(--purple-bg);color:var(--purple)}
+.rtp{border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:16px}
+.rtg{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px}
+.rtc{background:var(--bg2);border-radius:var(--radius);padding:8px 10px;text-align:center}
+.rtv{font-size:15px;font-weight:500}
+.rtu{font-size:10px;color:var(--text2)}
+.rtn{font-size:10px;color:var(--text2);margin-top:1px}
+.fcr{display:flex;gap:5px;overflow-x:auto;padding-bottom:4px}
+.fcd{flex:0 0 58px;background:var(--bg2);border-radius:var(--radius);padding:6px 4px;text-align:center;font-size:10px}
+.fci{font-size:12px;font-weight:500;color:var(--green-mid)}
+.alg{padding:8px 12px;border-radius:var(--radius);font-size:12px;margin-bottom:10px}
+.ag{background:var(--green-bg);color:var(--green);border:0.5px solid #C0DD97}
+.aw{background:var(--amber-bg);color:var(--amber);border:0.5px solid #FAC775}
+.ab{background:var(--red-bg);color:var(--red);border:0.5px solid #F7C1C1}
+.tip{font-size:11px;color:var(--text2);padding:6px 10px;background:var(--bg2);border-radius:var(--radius);margin-bottom:10px;border-left:2px solid var(--green-mid)}
+.pulse{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green-mid);animation:pl 2s infinite;margin-left:4px;vertical-align:middle}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:.3}}
+.hidden{display:none}
+footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;padding-top:16px;border-top:0.5px solid var(--border)}
+
+/* Modo + región */
+.mode-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.mode-row label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text)}
+.mode-row input[type=checkbox]{width:14px;height:14px;cursor:pointer}
+.region-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:500;border:0.5px solid var(--border2)}
+.region-costa{background:#FFF5E6;color:#7A4A0F;border-color:#F2D49B}
+.region-sierra{background:#E6F1FB;color:#0C447C;border-color:#9CC4E8}
+.region-selva{background:#EAF3DE;color:#27500A;border-color:#C0DD97}
+.region-info{padding:10px 12px;background:var(--bg2);border-radius:var(--radius);margin-top:8px;font-size:12px;color:var(--text2);line-height:1.5}
+.region-info strong{color:var(--text)}
+.eff-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:8px}
+.eff-row{display:flex;align-items:center;gap:8px;font-size:11px}
+.eff-name{flex:0 0 95px;color:var(--text2)}
+.eff-bar{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;position:relative}
+.eff-fill{height:100%;background:var(--green-mid);border-radius:3px;transition:width .3s}
+.eff-fill.dim{background:#bbb}
+.eff-pct{flex:0 0 32px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text)}
+.eff-note{font-size:10px;color:var(--text3);margin-top:6px;font-style:italic}
+.dim-flag{display:inline-block;font-size:9px;color:var(--text3);margin-left:4px}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Solar Optimizer</h1>
+  <p class="subtitle">Puntos óptimos para instalación de paneles solares — costa, sierra y selva del Perú</p>
+
+  <div class="card">
+    <div class="section-title">Área de análisis</div>
+    <div class="row">
+      <div class="field"><label>Latitud central</label><input type="number" id="lat" value="-13.5319" step="0.001"></div>
+      <div class="field"><label>Longitud central</label><input type="number" id="lng" value="-71.9675" step="0.001"></div>
+      <div class="field"><label>Radio (km)</label><input type="number" id="radius" value="3" min="0.5" max="20" step="0.5"></div>
+      <div class="field"><label>Grilla</label>
+        <select id="res">
+          <option value="3">3×3 — 9 puntos</option>
+          <option value="4" selected>4×4 — 16 puntos</option>
+          <option value="5">5×5 — 25 puntos</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="field"><label>Lat. bomba/pozo (opcional)</label><input type="number" id="clat" placeholder="ej. -13.530" step="0.001"></div>
+      <div class="field"><label>Lng. bomba/pozo</label><input type="number" id="clng" placeholder="ej. -71.965" step="0.001"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Sistema (dimensionamiento)</div>
+    <div class="row">
+      <div class="field">
+        <label>Potencia pico (kWp)</label>
+        <input type="number" id="kwp" value="1" min="0.1" step="0.1">
+      </div>
+      <div class="field">
+        <label>Demanda diaria <span style="color:var(--text3)">opcional, kWh/día</span></label>
+        <input type="number" id="load-kwh" placeholder="ej. 5" min="0" step="0.1">
+      </div>
+    </div>
+    <div id="sizing-banner" class="hidden" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Montaje del panel</div>
+    <div class="mode-row">
+      <label><input type="checkbox" id="tilt-auto" checked> Tilt + azimut óptimos automáticos (PVGIS)</label>
+      <label style="margin-left:auto"><input type="checkbox" id="cross-source"> Validación cruzada PVGIS + ERA5 <span style="color:var(--text3);font-size:11px">(+50% tiempo, mide acuerdo entre fuentes)</span></label>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Tilt manual (°) <span style="color:var(--text3)">0 = horizontal</span></label>
+        <input type="number" id="tilt" value="20" min="0" max="60" step="1" disabled>
+      </div>
+      <div class="field">
+        <label>Azimut (° desde el sur, +O / -E)</label>
+        <input type="number" id="aspect" value="0" min="-180" max="180" step="5" disabled>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">
+      Default automático: PVGIS calcula tilt y azimut óptimos para la latitud
+      (típicamente ~lat° en Perú, mirando al norte). Sin este flag los valores
+      asumen panel horizontal y subestiman el yield ~10–15 %.
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div class="section-title" style="margin:0">Trimestre crítico</div>
+      <span style="font-size:11px;color:var(--text2)">Período de mayor demanda de riego</span>
+    </div>
+    <div class="season-row">
+      <button class="stab on" data-season="0">Anual</button>
+      <button class="stab" data-season="1">Q1 ene–mar</button>
+      <button class="stab" data-season="2">Q2 abr–jun</button>
+      <button class="stab" data-season="3">Q3 jul–sep</button>
+      <button class="stab" data-season="4">Q4 oct–dic</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div class="section-title" style="margin:0">Pesos del score</div>
+      <span id="wsum-disp" style="font-size:11px;color:var(--text2)">auto</span>
+    </div>
+    <div class="mode-row">
+      <label><input type="checkbox" id="auto-preset" checked> Auto-ajuste por región (recomendado)</label>
+      <span id="region-badge-slot"></span>
+    </div>
+    <div id="region-info-slot"></div>
+
+    <div class="wgrid" id="weights-manual">
+      <div class="w-row"><div class="w-lbl"><span>Irradiancia</span><span id="wv-irr">28%</span></div><input type="range" data-w="irr" min="0" max="60" value="28" step="1"></div>
+      <div class="w-row"><div class="w-lbl"><span>Pendiente</span><span id="wv-slope">15%</span></div><input type="range" data-w="slope" min="0" max="40" value="15" step="1"></div>
+      <div class="w-row"><div class="w-lbl"><span>Sombras topográficas</span><span id="wv-shadow">15%</span></div><input type="range" data-w="shadow" min="0" max="40" value="15" step="1"></div>
+      <div class="w-row"><div class="w-lbl"><span>Distancia a consumo</span><span id="wv-dist">12%</span></div><input type="range" data-w="dist" min="0" max="40" value="12" step="1"></div>
+      <div class="w-row"><div class="w-lbl"><span>Orientación / azimut</span><span id="wv-azimut">5%</span></div><input type="range" data-w="azimut" min="0" max="30" value="5" step="1"></div>
+      <div class="w-row"><div class="w-lbl"><span>Estrés térmico</span><span id="wv-temp">15%</span></div><input type="range" data-w="temp" min="0" max="40" value="15" step="1"></div>
+      <div class="w-row"><div class="w-lbl"><span>Clearness index</span><span id="wv-clearness">10%</span></div><input type="range" data-w="clearness" min="0" max="50" value="10" step="1"></div>
+    </div>
+    <div id="w-warn" style="font-size:11px;color:#A32D2D;margin-top:6px"></div>
+
+    <div id="eff-weights-slot"></div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap">
+    <button class="run" id="btn-run">Analizar área</button>
+    <button class="run" id="btn-export" style="background:var(--bg2);color:var(--text);display:none">Exportar CSV</button>
+    <button class="run" id="btn-share" style="background:var(--bg2);color:var(--text);display:none">Copiar enlace</button>
+    <span class="status" id="status">Configura el área y presiona analizar.</span>
+  </div>
+  <div class="prog"><div class="prog-f" id="prog" style="width:0%"></div></div>
+  <div id="elev-warning" class="hidden alg aw" style="margin-top:8px"></div>
+  <div id="cache-bar" style="font-size:11px;color:var(--text3);margin-top:6px;display:flex;justify-content:space-between;align-items:center"></div>
+
+  <div id="rt-sec" class="hidden" style="margin-top:16px">
+    <div class="rtp">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <div style="font-size:13px;font-weight:500">Condiciones actuales — punto óptimo<span class="pulse"></span></div>
+          <div style="font-size:11px;color:var(--text2);font-family:monospace" id="rt-coords">—</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--text2)" id="rt-time"></div>
+          <div style="font-size:10px;color:var(--text3)" id="rt-elev"></div>
+        </div>
+      </div>
+      <div id="rt-alert" class="hidden"></div>
+      <div class="rtg" id="rt-cards"></div>
+      <div style="font-size:11px;color:var(--text2);font-weight:500;margin-bottom:6px">Pronóstico 7 días — irradiancia (kWh/m²)</div>
+      <div class="fcr" id="fc-row"></div>
+    </div>
+  </div>
+
+  <div id="main-stats" class="hidden">
+    <div class="sgrid">
+      <div class="sc"><div class="sc-l">Score relativo</div><div class="sc-v" id="s-best">—</div><div class="sc-s" id="s-best-src"></div></div>
+      <div class="sc"><div class="sc-l">Score absoluto</div><div class="sc-v" id="s-abs">—</div><div class="sc-s" id="s-abs-cat">vs Perú</div></div>
+      <div class="sc"><div class="sc-l">Yield óptimo</div><div class="sc-v" id="s-irr">—</div><div class="sc-s" id="s-irr-src">kWh/kWp · período</div></div>
+      <div class="sc"><div class="sc-l">Energía sistema</div><div class="sc-v" id="s-energy">—</div><div class="sc-s" id="s-energy-sub">kWh totales</div></div>
+      <div class="sc"><div class="sc-l">Producción diaria</div><div class="sc-v" id="s-daily">—</div><div class="sc-s" id="s-daily-sub">kWh/día</div></div>
+      <div class="sc"><div class="sc-l">Mes crítico</div><div class="sc-v" id="s-crit">—</div><div class="sc-s" id="s-crit-sub">kWh/kWp/día</div></div>
+      <div class="sc"><div class="sc-l">Clearness KT</div><div class="sc-v" id="s-kt">—</div><div class="sc-s">NASA POWER</div></div>
+      <div class="sc"><div class="sc-l">Temp. estimada</div><div class="sc-v" id="s-temp">—</div><div class="sc-s" id="s-temp-rng">rango</div></div>
+      <div class="sc"><div class="sc-l">Pendiente mín.</div><div class="sc-v" id="s-slope">—</div><div class="sc-s">grados</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" data-tab="map">Mapa</button>
+      <button class="tab" data-tab="table">Ranking</button>
+      <button class="tab" data-tab="chart">Mensual</button>
+    </div>
+
+    <div id="tab-map">
+      <div class="map-wrap"><div id="map"></div>
+        <div class="leg">
+          <span><span class="ld" style="background:#27500A"></span>Óptimo (&gt;85)</span>
+          <span><span class="ld" style="background:#EF9F27"></span>Bueno (70–85)</span>
+          <span><span class="ld" style="background:#E24B4A"></span>Bajo (&lt;70)</span>
+          <span><span class="ld" style="background:#185FA5;border-radius:2px"></span>Centro</span>
+          <span><span class="ld" style="background:#534AB7;border-radius:2px"></span>Consumo</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--text3)">Tiles: OpenStreetMap / Esri</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-table" class="hidden tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:24px">#</th>
+          <th style="width:110px">Coordenadas</th>
+          <th style="width:40px">Rel.</th>
+          <th style="width:40px">Abs.</th>
+          <th style="width:78px">Yield</th>
+          <th style="width:60px">Crítico</th>
+          <th style="width:50px">Fuente</th>
+          <th style="width:48px">Sombra</th>
+          <th style="width:42px">Pend.</th>
+          <th style="width:46px">Temp.</th>
+          <th style="width:50px">Dist.</th>
+          <th style="width:55px">Calidad</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div id="tab-chart" class="hidden">
+      <div class="tip">Yield mensual (kWh/kWp) del punto #1 (óptimo) vs. punto más bajo — el mes mínimo define el dimensionamiento off-grid.</div>
+      <div style="position:relative;width:100%;height:220px">
+        <canvas id="monthly-chart" role="img" aria-label="Comparación mensual de irradiancia entre punto óptimo y más bajo">Gráfico mensual de irradiancia.</canvas>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--text2)">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#3B6D11;display:inline-block"></span>Punto óptimo</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#F09595;display:inline-block"></span>Punto más bajo</span>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Solar Optimizer · PVGIS + ERA5 + NASA POWER · SRTM/ASTER 30 m · Forecast Open-Meteo GFS · Ajuste regional auto · Dimensionamiento por mes crítico ·
+    <a href="../validation/" style="color:var(--text2)">Validación</a>
+  </footer>
+</div>
+
+<script type="module">
+import { generateGrid } from '../src/core/grid.js';
+import { fetchPVGIS } from '../src/api/pvgis.js';
+import { fetchHistorical, fetchForecast } from '../src/api/openmeteo.js';
+import { fetchElevations, elevationCoverage } from '../src/api/elevation.js';
+import { fetchNASAPower } from '../src/api/nasa-power.js';
+import { cacheGet, cacheSet, cacheStats, purgeAll } from '../src/core/cache.js';
+import { calcSlope, calcShadowScore, calcAzimutScore, generateHorizonRing } from '../src/core/shadows.js';
+import { detectRegion, regionLabel, regionDescription, isInPeru } from '../src/core/region.js';
+import {
+  PRESETS, FACTOR_LABELS,
+  estimateTemp, tempScore, clearnessScore, seasonalAverage,
+} from '../src/core/weights.js';
+import { computeScores, absoluteScore, absoluteCategory } from '../src/core/score.js';
+import { totalEnergy, worstMonth, dailyAverage, sizingRecommendation, MONTH_NAMES_ES } from '../src/core/energy.js';
+import { applySoiling, regionalFallback, withRetry, sourceAgreement, uncertaintyBand, confidenceLabel } from '../src/core/calibration.js';
+import { haversine, SEASONS } from '../src/core/utils.js';
+
+/* ─────────── estado global ─────────── */
+const state = {
+  activeSeason: 0,
+  autoPreset: true,
+  manualWeights: { irr: 28, slope: 15, shadow: 15, dist: 12, azimut: 5, temp: 15, clearness: 10 },
+  results: [],         // último ranking
+  effectiveWeights: null,
+  discrimination: null,
+  regionInfo: null,
+  baseTemp: null,
+  baseElev: null,
+  centerKT: null,
+  forecast: null,
+  monthlyChart: null,
+  running: false,
+};
+
+const $ = id => document.getElementById(id);
+
+/* ─────────── temporada ─────────── */
+document.querySelectorAll('.stab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.activeSeason = parseInt(btn.dataset.season);
+    document.querySelectorAll('.stab').forEach(b => b.classList.toggle('on', b === btn));
+    if (state.results.length) reScore();
+  });
+});
+
+/* ─────────── pesos manuales ─────────── */
+document.querySelectorAll('input[type=range][data-w]').forEach(inp => {
+  inp.addEventListener('input', () => {
+    const k = inp.dataset.w;
+    state.manualWeights[k] = parseInt(inp.value);
+    $(`wv-${k}`).textContent = inp.value + '%';
+    updateWeightSum();
+    if (state.results.length && !state.autoPreset) reScore();
+  });
+});
+
+function updateWeightSum() {
+  if (state.autoPreset) {
+    $('wsum-disp').textContent = 'auto';
+    $('w-warn').textContent = '';
+    return;
+  }
+  const sum = Object.values(state.manualWeights).reduce((a, b) => a + b, 0);
+  $('wsum-disp').textContent = `suma: ${sum}`;
+  $('w-warn').textContent = sum !== 100 ? '⚠ Los pesos deben sumar 100' : '';
+}
+
+/* ─────────── modo auto ─────────── */
+$('auto-preset').addEventListener('change', e => {
+  state.autoPreset = e.target.checked;
+  document.querySelectorAll('input[type=range][data-w]').forEach(inp => inp.disabled = state.autoPreset);
+  updateWeightSum();
+  if (state.results.length) {
+    if (state.autoPreset && state.regionInfo) syncSlidersToPreset(state.regionInfo.region);
+    reScore();
+  }
+});
+// init
+document.querySelectorAll('input[type=range][data-w]').forEach(inp => inp.disabled = true);
+
+function syncSlidersToPreset(region) {
+  const preset = PRESETS[region];
+  if (!preset) return;
+  state.manualWeights = { ...preset };
+  for (const [k, v] of Object.entries(preset)) {
+    const el = document.querySelector(`input[type=range][data-w="${k}"]`);
+    if (el) el.value = v;
+    if ($(`wv-${k}`)) $(`wv-${k}`).textContent = v + '%';
+  }
+}
+
+/* ─────────── tabs ─────────── */
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => showTab(btn.dataset.tab));
+});
+
+function showTab(t) {
+  ['map', 'table', 'chart'].forEach(x => {
+    $(`tab-${x}`).classList.toggle('hidden', x !== t);
+  });
+  document.querySelectorAll('.tab').forEach(el => el.classList.toggle('on', el.dataset.tab === t));
+  if (t === 'map') drawMap();
+  if (t === 'chart') buildMonthly();
+}
+
+/* ─────────── inputs de sistema ─────────── */
+$('kwp').addEventListener('input', () => {
+  if (state.results.length) { renderStats(); buildTable(); }
+});
+$('load-kwh').addEventListener('input', () => {
+  if (state.results.length) renderStats();
+});
+
+/* ─────────── tilt/aspect ─────────── */
+$('tilt-auto').addEventListener('change', e => {
+  const auto = e.target.checked;
+  $('tilt').disabled = auto;
+  $('aspect').disabled = auto;
+});
+
+/* ─────────── analizar ─────────── */
+$('btn-run').addEventListener('click', runAnalysis);
+$('btn-export').addEventListener('click', exportCSV);
+$('btn-share').addEventListener('click', copyShareLink);
+
+/* ─────────── wrappers cacheados ─────────── */
+async function cachedPVGIS(lat, lng, m1, m2, opts) {
+  const rLat = Math.round(lat * 100) / 100; // ~1.1 km
+  const rLng = Math.round(lng * 100) / 100;
+  const tilt = opts?.angle != null ? opts.angle : 'opt';
+  const aspect = opts?.aspect != null ? opts.aspect : 'opt';
+  const ckey = ['pvgis', rLat, rLng, tilt, aspect];
+  const cached = cacheGet(...ckey);
+  if (cached?.monthly) {
+    let total = 0;
+    for (let i = m1 - 1; i < m2; i++) total += cached.monthly[i] || 0;
+    return { ...cached, val: Math.round(total * 10) / 10, fromCache: true };
+  }
+  const r = await fetchPVGIS(lat, lng, m1, m2, opts);
+  if (r) cacheSet(ckey, r);
+  return r;
+}
+
+async function cachedERA5(lat, lng, m1, m2) {
+  const rLat = Math.round(lat * 100) / 100;
+  const rLng = Math.round(lng * 100) / 100;
+  const ckey = ['era5', rLat, rLng];
+  const cached = cacheGet(...ckey);
+  if (cached?.monthly) {
+    let total = 0;
+    for (let i = m1 - 1; i < m2; i++) total += cached.monthly[i] || 0;
+    return { ...cached, val: Math.round(total * 10) / 10, fromCache: true };
+  }
+  const r = await fetchHistorical(lat, lng, m1, m2);
+  if (r) cacheSet(ckey, r);
+  return r;
+}
+
+async function cachedNASA(lat, lng, ys, ye) {
+  const rLat = Math.round(lat * 10) / 10; // NASA POWER ~50 km, redondear a ~11 km es ok
+  const rLng = Math.round(lng * 10) / 10;
+  const ckey = ['nasa', rLat, rLng, ys, ye];
+  const cached = cacheGet(...ckey);
+  if (cached) return { ...cached, fromCache: true };
+  const r = await fetchNASAPower(lat, lng, ys, ye);
+  if (r) cacheSet(ckey, r);
+  return r;
+}
+
+/* ─────────── cache stats UI ─────────── */
+function refreshCacheBar() {
+  const s = cacheStats();
+  const bar = $('cache-bar');
+  if (s.count === 0) {
+    bar.innerHTML = '<span>Cache vacío</span>';
+    return;
+  }
+  const kb = (s.bytes / 1024).toFixed(0);
+  bar.innerHTML = `<span>${s.count} resultados en cache (~${kb} KB · TTL 30 días)</span>
+    <a href="#" id="cache-clear" style="color:var(--text2);text-decoration:underline">Limpiar</a>`;
+  $('cache-clear')?.addEventListener('click', e => {
+    e.preventDefault();
+    const n = purgeAll();
+    refreshCacheBar();
+    $('status').textContent = `Cache limpiado (${n} entradas).`;
+  });
+}
+refreshCacheBar();
+
+async function runAnalysis() {
+  if (state.running) return;
+
+  if (!state.autoPreset) {
+    const sum = Object.values(state.manualWeights).reduce((a, b) => a + b, 0);
+    if (sum !== 100) { $('status').textContent = 'Los pesos deben sumar 100.'; return; }
+  }
+
+  state.running = true;
+  $('btn-run').disabled = true;
+
+  const lat = parseFloat($('lat').value);
+  const lng = parseFloat($('lng').value);
+  const radius = parseFloat($('radius').value);
+  const n = parseInt($('res').value);
+  const clat = parseFloat($('clat').value);
+  const clng = parseFloat($('clng').value);
+  const hasC = !isNaN(clat) && !isNaN(clng);
+
+  // Validación bounding box: la heurística de región solo aplica a Perú
+  if (!isInPeru(lat, lng)) {
+    const ok = confirm(
+      'El punto está fuera del territorio peruano (bbox -18.5°/-0° lat, -81.5°/-68.5° lng).\n' +
+      'La detección de región (costa/sierra/selva) y los presets de pesos están calibrados solo para Perú.\n\n' +
+      '¿Continuar de todas formas?'
+    );
+    if (!ok) {
+      state.running = false;
+      $('btn-run').disabled = false;
+      $('status').textContent = 'Análisis cancelado.';
+      return;
+    }
+  }
+
+  const points = generateGrid(lat, lng, radius, n);
+  const total = points.length;
+
+  $('main-stats').classList.add('hidden');
+  $('rt-sec').classList.add('hidden');
+  $('prog').style.width = '0%';
+  $('status').textContent = `Consultando elevaciones (${total} grid + 12 horizonte)…`;
+
+  // Anillo de horizonte fuera de la grilla para detectar obstáculos a distancia
+  // (un cerro a 2× el radio queda invisible si solo miramos puntos del grid).
+  const horizon = generateHorizonRing(lat, lng, radius * 2.5, 12);
+  const allPoints = [...points, ...horizon];
+  const allElevs = await fetchElevations(allPoints);
+  const elevs = allElevs.slice(0, points.length); // solo grid para slope/azimut/temp
+
+  // Cobertura de elevación: si <50 % de los puntos tiene dato válido,
+  // los factores topográficos son poco confiables → avisar al usuario.
+  const coverage = elevationCoverage(elevs);
+  renderElevWarning(coverage);
+
+  // Detección de región a partir del centro (median de elevs válidas).
+  const validElevs = elevs.filter(e => !isNaN(e));
+  const centerElev = validElevs.length ? median(validElevs) : NaN;
+  state.baseElev = isNaN(centerElev) ? null : centerElev;
+  state.regionInfo = detectRegion(lat, lng, centerElev);
+
+  if (state.autoPreset) syncSlidersToPreset(state.regionInfo.region);
+  renderRegion(state.regionInfo, centerElev);
+
+  $('status').textContent = 'Calculando topografía (pendiente, sombras con horizonte extendido, azimut)…';
+  const slopes = points.map(pt => calcSlope(pt, points, elevs));
+  // Sombras: usa el set extendido (grid + horizonte) para detectar obstáculos fuera del área
+  const shadows = points.map(pt => calcShadowScore(pt, allPoints, allElevs));
+  const azimuts = points.map(pt => calcAzimutScore(pt, points, elevs));
+
+  // Datos contextuales: 1 fetch para el centro (cacheados)
+  $('status').textContent = 'Consultando NASA POWER (clearness) + forecast…';
+  const lastYear = new Date().getFullYear() - 1;
+  const [forecast, nasa] = await Promise.all([
+    withRetry(() => fetchForecast(lat, lng)),
+    withRetry(() => cachedNASA(lat, lng, lastYear - 5, lastYear)),
+  ]);
+  state.forecast = forecast;
+
+  // Temperatura base: promedio diario máximo del forecast (peor caso operativo)
+  state.baseTemp = forecast?.daily?.temperature_2m_max
+    ? avg(forecast.daily.temperature_2m_max)
+    : null;
+
+  const [m1, m2] = SEASONS[state.activeSeason];
+
+  // Guarda el array mensual completo para poder recomputar el promedio
+  // estacional cuando el usuario cambie de trimestre sin re-fetch.
+  state.nasaMonthlyKT = nasa?.clearnessIndex || null;
+  state.centerKT = state.nasaMonthlyKT
+    ? seasonalAverage(state.nasaMonthlyKT, m1, m2)
+    : null;
+
+  // Tilt/aspect: PVGIS optimiza por defecto; usuario puede sobreescribir
+  const tiltAuto = $('tilt-auto').checked;
+  const tiltOpts = tiltAuto ? {} : {
+    angle: parseFloat($('tilt').value),
+    aspect: parseFloat($('aspect').value),
+  };
+  const crossSource = $('cross-source').checked;
+
+  // Irradiancia por punto: cache → PVGIS (con retry) → ERA5 (con retry) → fallback regional
+  // Soiling regional aplicado solo a respuestas reales (PVGIS/ERA5), no al fallback ya calibrado.
+  // Cross-source: si está activo, corre PVGIS Y ERA5 en paralelo para medir acuerdo.
+  $('status').textContent = `Consultando irradiancia (${total} puntos en batches${crossSource ? ', cross-source' : ''})…`;
+  const rawData = new Array(total);
+  let done = 0;
+  const BATCH = 4;
+  for (let i = 0; i < total; i += BATCH) {
+    const batch = points.slice(i, i + BATCH);
+    const results = await Promise.all(batch.map(async pt => {
+      if (crossSource) {
+        // Llamadas en paralelo a ambas fuentes
+        const [pv, era] = await Promise.all([
+          withRetry(() => cachedPVGIS(pt.lat, pt.lng, m1, m2, tiltOpts)),
+          withRetry(() => cachedERA5(pt.lat, pt.lng, m1, m2)),
+        ]);
+        const primary = pv || era;
+        if (!primary) return regionalFallback(state.regionInfo.region, m1, m2);
+        const adjusted = applySoiling(primary, state.regionInfo.region);
+        const altRaw = (pv && era) ? (primary === pv ? era : pv) : null;
+        const altAdjusted = altRaw ? applySoiling(altRaw, state.regionInfo.region) : null;
+        return {
+          ...adjusted,
+          altSource: altAdjusted?.source,
+          altVal: altAdjusted?.val ?? null,
+          agreement: altAdjusted ? sourceAgreement(adjusted.val, altAdjusted.val) : null,
+        };
+      }
+      let r = await withRetry(() => cachedPVGIS(pt.lat, pt.lng, m1, m2, tiltOpts));
+      if (r) return applySoiling(r, state.regionInfo.region);
+      r = await withRetry(() => cachedERA5(pt.lat, pt.lng, m1, m2));
+      if (r) return applySoiling(r, state.regionInfo.region);
+      return regionalFallback(state.regionInfo.region, m1, m2);
+    }));
+    results.forEach((irrRes, j) => {
+      const idx = i + j;
+      const pt = batch[j];
+      const elev = elevs[idx] || 0;
+      const tEst = state.baseTemp != null ? estimateTemp(elev, state.baseTemp, centerElev) : null;
+      const elevMissing = isNaN(elev);
+      const usingFallback = irrRes.source && irrRes.source.startsWith('est.');
+      const band = uncertaintyBand(irrRes.val, {
+        altIrr: irrRes.altVal,
+        elevMissing,
+        usingFallback,
+      });
+      rawData[idx] = {
+        ...pt,
+        irr: irrRes.val,                  // kWh/kWp en el período (energía PV, no irrad. raw)
+        monthly: irrRes.monthly,          // 12 valores kWh/kWp/mes
+        irrSource: irrRes.source,
+        altSource: irrRes.altSource ?? null,
+        altVal: irrRes.altVal ?? null,
+        agreement: irrRes.agreement ?? null,
+        irrBand: band,
+        confidence: confidenceLabel(irrRes.val, band),
+        slope: slopes[idx],
+        shadowScore: shadows[idx],
+        azimutScore: azimuts[idx],
+        dist: hasC ? Math.round(haversine(pt.lat, pt.lng, clat, clng) * 10) / 10 : null,
+        elev,
+        tempEst: tEst,
+        tempScoreVal: tempScore(tEst),
+        clearnessKT: state.centerKT,
+        clearnessScoreVal: clearnessScore(state.centerKT),
+        absScore: absoluteScore(irrRes.val, m1, m2),
+        worst: worstMonth(irrRes.monthly, m1, m2),
+        dailyAvg: dailyAverage(irrRes.monthly, m1, m2),
+      };
+    });
+    done = Math.min(total, i + BATCH);
+    const pct = Math.round(done / total * 100);
+    $('prog').style.width = pct + '%';
+    $('status').textContent = `Irradiancia: ${done}/${total} puntos (${pct}%)`;
+    if (i + BATCH < total) await sleep(150); // gentle rate limit entre batches
+  }
+
+  state.results = rawData;
+  reScore();
+  $('main-stats').classList.remove('hidden');
+  $('btn-export').style.display = 'inline-block';
+  $('btn-share').style.display = 'inline-block';
+
+  $('status').textContent = 'Cargando condiciones en tiempo real…';
+  await renderRT(state.results[0]);
+
+  const top = state.results[0];
+  const cacheHits = rawData.filter(r => r.fromCache).length;
+  const cacheNote = cacheHits ? ` · ${cacheHits}/${total} desde cache` : '';
+  $('status').textContent = `Listo — punto óptimo: ${top.lat}, ${top.lng} · score ${top.score}/100 · ${regionLabel(state.regionInfo.region)}${cacheNote}`;
+  refreshCacheBar();
+  pushUrlState();
+  state.running = false;
+  $('btn-run').disabled = false;
+}
+
+/* ─────────── elev warning ─────────── */
+function renderElevWarning(coverage) {
+  const w = $('elev-warning');
+  if (coverage.ratio >= 0.8) {
+    w.classList.add('hidden');
+    return;
+  }
+  w.classList.remove('hidden');
+  const pct = Math.round(coverage.ratio * 100);
+  if (coverage.ratio === 0) {
+    w.className = 'alg ab';
+    w.innerHTML = `<strong>Sin elevación</strong> — Open-Elevation y ASTER no respondieron. Detección de región se basa solo en longitud (confianza baja); pendiente, sombras y temperatura usan defaults.`;
+  } else {
+    w.className = 'alg aw';
+    w.innerHTML = `<strong>Cobertura de elevación parcial: ${pct} %</strong> — los puntos sin dato usan valores neutros para sombras y pendiente. Recomendado reanalizar más tarde.`;
+  }
+}
+
+/* ─────────── CSV export ─────────── */
+function exportCSV() {
+  if (!state.results.length) return;
+  const kWp = parseFloat($('kwp').value) || 1;
+  const headers = [
+    'rank', 'lat', 'lng', 'score_relativo', 'score_absoluto',
+    'yield_kwh_per_kwp', 'banda_incertidumbre', 'confianza',
+    'fuente_alt', 'yield_alt', 'acuerdo_pct',
+    'energia_total_kwh', 'mes_critico',
+    'critico_kwh_per_kwp_dia', 'sombra_score', 'pendiente_grados',
+    'azimut_score', 'temp_estimada_c', 'distancia_km', 'fuente',
+    'elev_m', 'soiling_aplicado',
+  ];
+  const rows = state.results.map((p, i) => [
+    i + 1, p.lat, p.lng, p.score, p.absScore ?? '',
+    p.irr, p.irrBand ?? '', p.confidence ?? '',
+    p.altSource ?? '', p.altVal ?? '', p.agreement ?? '',
+    Math.round((p.irr || 0) * kWp),
+    p.worst?.name ?? '', p.worst?.dailyYield ?? '',
+    p.shadowScore, p.slope, p.azimutScore,
+    p.tempEst != null ? p.tempEst.toFixed(2) : '',
+    p.dist ?? '', p.irrSource, isNaN(p.elev) ? '' : p.elev,
+    p.soilingFactor ?? '',
+  ]);
+  const meta = [
+    `# Solar Optimizer export · ${new Date().toISOString()}`,
+    `# region: ${state.regionInfo?.region} (confianza ${state.regionInfo?.confidence})`,
+    `# centro: ${$('lat').value}, ${$('lng').value} · radio ${$('radius').value} km · grilla ${$('res').value}×${$('res').value}`,
+    `# trimestre: ${SEASONS[state.activeSeason].join('–')} · sistema ${kWp} kWp`,
+    `# clearness KT: ${state.centerKT?.toFixed(2) ?? 'n/a'} · temp base: ${state.baseTemp != null ? Math.round(state.baseTemp) + '°C' : 'n/a'}`,
+  ];
+  const csvRows = [
+    ...meta,
+    headers.join(','),
+    ...rows.map(r => r.map(v => {
+      const s = String(v);
+      return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+    }).join(',')),
+  ];
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `solar-${$('lat').value}_${$('lng').value}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ─────────── URL state encoding ─────────── */
+const URL_FIELDS = ['lat', 'lng', 'radius', 'res', 'clat', 'clng', 'kwp', 'load-kwh', 'tilt', 'aspect'];
+
+function pushUrlState() {
+  try {
+    const params = new URLSearchParams();
+    for (const id of URL_FIELDS) {
+      const v = $(id).value;
+      if (v !== '') params.set(id, v);
+    }
+    params.set('q', state.activeSeason);
+    params.set('auto', state.autoPreset ? '1' : '0');
+    params.set('ta', $('tilt-auto').checked ? '1' : '0');
+    params.set('xs', $('cross-source').checked ? '1' : '0');
+    history.replaceState(null, '', '#' + params.toString());
+  } catch { /* navegador antiguo, ignorar */ }
+}
+
+function loadUrlState() {
+  const hash = location.hash.replace(/^#/, '');
+  if (!hash) return;
+  try {
+    const params = new URLSearchParams(hash);
+    for (const id of URL_FIELDS) {
+      if (params.has(id)) $(id).value = params.get(id);
+    }
+    if (params.has('q')) {
+      state.activeSeason = parseInt(params.get('q')) || 0;
+      document.querySelectorAll('.stab').forEach(b =>
+        b.classList.toggle('on', parseInt(b.dataset.season) === state.activeSeason)
+      );
+    }
+    if (params.has('auto')) {
+      state.autoPreset = params.get('auto') === '1';
+      $('auto-preset').checked = state.autoPreset;
+      document.querySelectorAll('input[type=range][data-w]').forEach(inp => inp.disabled = state.autoPreset);
+    }
+    if (params.has('ta')) {
+      const auto = params.get('ta') === '1';
+      $('tilt-auto').checked = auto;
+      $('tilt').disabled = auto;
+      $('aspect').disabled = auto;
+    }
+    if (params.has('xs')) {
+      $('cross-source').checked = params.get('xs') === '1';
+    }
+  } catch (e) {
+    console.warn('URL state inválido:', e);
+  }
+}
+
+async function copyShareLink() {
+  pushUrlState();
+  const url = location.href;
+  try {
+    await navigator.clipboard.writeText(url);
+    $('status').textContent = 'Enlace copiado al portapapeles.';
+  } catch {
+    prompt('Copia este enlace:', url);
+  }
+}
+
+loadUrlState();
+
+/* ─────────── re-score (sin volver a llamar APIs) ─────────── */
+function reScore() {
+  if (!state.results.length) return;
+
+  // Recomputa campos dependientes del período (cuando cambia el trimestre,
+  // monthly[] sigue siendo el mismo pero la suma, mes crítico, etc., cambian)
+  const [m1, m2] = SEASONS[state.activeSeason];
+  state.centerKT = state.nasaMonthlyKT
+    ? seasonalAverage(state.nasaMonthlyKT, m1, m2)
+    : state.centerKT;
+  for (const p of state.results) {
+    if (!p.monthly) continue;
+    let total = 0;
+    for (let i = m1 - 1; i < m2; i++) total += p.monthly[i] || 0;
+    p.irr = Math.round(total * 10) / 10;
+    p.absScore = absoluteScore(p.irr, m1, m2);
+    p.worst = worstMonth(p.monthly, m1, m2);
+    p.dailyAvg = dailyAverage(p.monthly, m1, m2);
+    p.clearnessKT = state.centerKT;
+    p.clearnessScoreVal = clearnessScore(state.centerKT);
+    // Banda de incertidumbre re-escalada al período. La señal cross-source
+    // (altVal) es para el período del análisis original; en re-score por
+    // cambio de trimestre solo usamos elevMissing y usingFallback.
+    const usingFallback = p.irrSource && p.irrSource.startsWith('est.');
+    p.irrBand = uncertaintyBand(p.irr, {
+      elevMissing: isNaN(p.elev),
+      usingFallback,
+    });
+    p.confidence = confidenceLabel(p.irr, p.irrBand);
+  }
+
+  const baseWeights = state.autoPreset
+    ? { ...PRESETS[state.regionInfo?.region || 'sierra'] }
+    : { ...state.manualWeights };
+
+  const { ranked, effectiveWeights, discrimination } = computeScores(state.results, baseWeights);
+  state.results = ranked;
+  state.effectiveWeights = effectiveWeights;
+  state.discrimination = discrimination;
+
+  renderEffectiveWeights(effectiveWeights, discrimination);
+  renderStats();
+  drawMap();
+  buildTable();
+  if (!$('tab-chart').classList.contains('hidden')) buildMonthly();
+}
+
+/* ─────────── render: región ─────────── */
+function renderRegion(info, centerElev) {
+  const slot = $('region-badge-slot');
+  const cls = `region-${info.region}`;
+  const confTxt = { high: 'alta', medium: 'media', low: 'baja' }[info.confidence] || info.confidence;
+  const txt = `${regionLabel(info.region)} · ${confTxt} confianza${info.transition ? ' · transición' : ''}${info.missingElev ? ' · sin elev' : ''}`;
+  slot.innerHTML = `<span class="region-badge ${cls}">${txt}</span>`;
+
+  const elevTxt = (centerElev == null || isNaN(centerElev))
+    ? 'Elev. centro: no disponible'
+    : `Elev. centro: ${Math.round(centerElev)} m`;
+  $('region-info-slot').innerHTML = `<div class="region-info">
+    <strong>Detectado:</strong> ${regionDescription(info)}<br>
+    <span style="font-size:11px;color:var(--text3)">${elevTxt} · Divide andino aprox. ${info.divide.toFixed(2)}° W</span>
+  </div>`;
+}
+
+/* ─────────── render: pesos efectivos ─────────── */
+function renderEffectiveWeights(effective, discrim) {
+  const order = ['irr', 'slope', 'shadow', 'dist', 'azimut', 'temp', 'clearness'];
+  const rows = order.map(k => {
+    const v = effective[k] || 0;
+    const d = discrim[k] ?? 0;
+    const dim = d < 0.05 && v < 5;
+    const flag = d < 0.05 ? '<span class="dim-flag" title="Factor uniforme — peso redistribuido">·uniforme</span>' : '';
+    return `<div class="eff-row">
+      <span class="eff-name">${FACTOR_LABELS[k]}${flag}</span>
+      <span class="eff-bar"><span class="eff-fill ${dim ? 'dim' : ''}" style="width:${Math.min(100, v * 2)}%"></span></span>
+      <span class="eff-pct">${Math.round(v)}%</span>
+    </div>`;
+  }).join('');
+
+  $('eff-weights-slot').innerHTML = `<div style="margin-top:14px">
+    <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Pesos efectivos (post-ajuste)</div>
+    <div class="eff-grid">${rows}</div>
+    <div class="eff-note">Los factores marcados como <em>uniforme</em> tenían poca varianza dentro del área y su peso fue redistribuido a los discriminantes.</div>
+  </div>`;
+}
+
+/* ─────────── render: stats cards ─────────── */
+function renderStats() {
+  const r = state.results;
+  const top = r[0];
+  const kWp = parseFloat($('kwp').value) || 1;
+  const [m1, m2] = SEASONS[state.activeSeason];
+
+  $('s-best').textContent = top.score + '/100';
+  $('s-best-src').textContent = `${regionLabel(state.regionInfo.region)} · relativo al área`;
+
+  const abs = top.absScore ?? 0;
+  $('s-abs').textContent = abs + '/100';
+  $('s-abs-cat').textContent = absoluteCategory(abs) + ' (vs Perú)';
+
+  $('s-irr').innerHTML = `${top.irr} <span style="font-size:12px;color:var(--text2)">±${top.irrBand}</span>`;
+  const agreementTxt = top.agreement != null ? ` · acuerdo ${top.agreement}%` : '';
+  $('s-irr-src').textContent = `${top.irrSource} · confianza ${top.confidence}${agreementTxt}`;
+
+  const energy = totalEnergy(top.monthly, kWp, m1, m2);
+  $('s-energy').textContent = energy.toLocaleString('es-PE') + ' kWh';
+  $('s-energy-sub').textContent = `${kWp} kWp · ${SEASONS[state.activeSeason][0]}–${SEASONS[state.activeSeason][1]}`;
+
+  const dailyKwh = (top.dailyAvg * kWp);
+  $('s-daily').textContent = (Math.round(dailyKwh * 100) / 100) + ' kWh';
+  $('s-daily-sub').textContent = `${top.dailyAvg.toFixed(2)} kWh/kWp/día`;
+
+  if (top.worst) {
+    $('s-crit').textContent = top.worst.name;
+    const critDaily = top.worst.dailyYield * kWp;
+    $('s-crit-sub').textContent = `${(Math.round(critDaily * 100) / 100)} kWh/día (${top.worst.dailyYield} /kWp)`;
+  } else {
+    $('s-crit').textContent = '—';
+    $('s-crit-sub').textContent = 'sin datos mensuales';
+  }
+
+  $('s-kt').textContent = state.centerKT != null ? state.centerKT.toFixed(2) : '—';
+
+  if (state.baseTemp != null) {
+    const temps = r.map(p => p.tempEst).filter(t => t != null);
+    if (temps.length) {
+      const tmn = Math.min(...temps), tmx = Math.max(...temps);
+      $('s-temp').textContent = Math.round(state.baseTemp) + '°C';
+      $('s-temp-rng').textContent = `${tmn.toFixed(1)}–${tmx.toFixed(1)}°C en grilla`;
+    }
+  } else {
+    $('s-temp').textContent = '—';
+    $('s-temp-rng').textContent = 'sin forecast';
+  }
+  $('s-slope').textContent = Math.min(...r.map(p => p.slope)) + '°';
+
+  renderSizing(top, kWp);
+}
+
+function renderSizing(top, kWp) {
+  const banner = $('sizing-banner');
+  const load = parseFloat($('load-kwh').value);
+  if (!top || !top.worst || isNaN(load) || load <= 0) {
+    banner.classList.add('hidden');
+    return;
+  }
+  const rec = sizingRecommendation(top.worst, load, kWp);
+  if (!rec) { banner.classList.add('hidden'); return; }
+
+  const ok = rec.coverage >= 100;
+  const cls = ok ? 'ag' : rec.coverage >= 80 ? 'aw' : 'ab';
+  const surplus = rec.surplusOrDeficit;
+  const surplusTxt = surplus >= 0
+    ? `excedente de ${surplus.toFixed(2)} kWh/día en el mes crítico`
+    : `déficit de ${Math.abs(surplus).toFixed(2)} kWh/día en el mes crítico`;
+
+  banner.classList.remove('hidden');
+  banner.className = 'alg ' + cls;
+  banner.innerHTML = `
+    <strong>Dimensionamiento (mes crítico: ${top.worst.name})</strong><br>
+    Tu sistema de <strong>${kWp} kWp</strong> cubre <strong>${rec.coverage}%</strong> de la demanda
+    de ${load} kWh/día — ${surplusTxt}.<br>
+    <span style="font-size:11px">Sistema mínimo recomendado: <strong>${rec.requiredKwp} kWp</strong> (con margen 0 %; añadir 20–30 % para soiling, degradación y reserva).</span>
+  `;
+}
+
+/* ─────────── render: mapa (Leaflet + OSM/Esri) ─────────── */
+let lmap = null;
+let lmapLayers = null;
+
+function initMap() {
+  if (lmap) return lmap;
+  lmap = L.map('map', { zoomControl: true, attributionControl: true });
+
+  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 19,
+  });
+  const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri — World Imagery',
+    maxZoom: 19,
+  });
+  const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenTopoMap (CC-BY-SA)',
+    maxZoom: 17,
+  });
+
+  osm.addTo(lmap);
+  L.control.layers(
+    { 'Calle': osm, 'Satélite': esri, 'Topográfico': topo },
+    null,
+    { position: 'topright', collapsed: true },
+  ).addTo(lmap);
+
+  lmapLayers = L.layerGroup().addTo(lmap);
+  return lmap;
+}
+
+function categoryClass(score) {
+  return score >= 85 ? 'pm-optimo' : score >= 70 ? 'pm-bueno' : 'pm-bajo';
+}
+
+function drawMap() {
+  const r = state.results;
+  if (!r.length) return;
+  const map = initMap();
+  lmapLayers.clearLayers();
+
+  // Markers de grilla con score color + número como icono div
+  for (let i = 0; i < r.length; i++) {
+    const p = r[i];
+    const isTop = i === 0;
+    const cls = categoryClass(p.score) + (isTop ? ' pm-top' : '');
+    const shadowDot = p.shadowScore < 60 ? '<span class="pm-shadow"></span>' : '';
+    const html = `<div class="pm-circle ${cls}">${p.score}${shadowDot}</div>`;
+    const m = L.marker([p.lat, p.lng], {
+      icon: L.divIcon({
+        className: 'pm-marker',
+        html,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+      }),
+    }).addTo(lmapLayers);
+
+    const distTxt = p.dist !== null ? `${p.dist} km del consumo` : '';
+    const tempTxt = p.tempEst != null ? `${p.tempEst.toFixed(1)} °C` : '—';
+    const critTxt = p.worst ? `${p.worst.name} ${p.worst.dailyYield} kWh/kWp/día` : '—';
+    const agreeTxt = p.agreement != null
+      ? ` · acuerdo PVGIS↔ERA5 <strong>${p.agreement}%</strong>` : '';
+    const altTxt = p.altVal != null ? ` (alt: ${p.altVal} ${p.altSource})` : '';
+    m.bindPopup(`
+      <strong>#${i + 1}${isTop ? ' ★' : ''} · score ${p.score}/100</strong><br>
+      <span style="color:#666;font-family:monospace;font-size:11px">${p.lat}, ${p.lng}</span><br>
+      Yield: <strong>${p.irr} ±${p.irrBand}</strong> kWh/kWp · confianza ${p.confidence}<br>
+      Abs: <strong>${p.absScore ?? '—'}</strong>/100 · Sombra ${p.shadowScore} · Pend ${p.slope}° · Temp ${tempTxt}<br>
+      Mes crítico: ${critTxt}<br>
+      <span style="color:#666;font-size:11px">Fuente: ${p.irrSource}${p.fromCache ? ' (cache)' : ''}${altTxt}${agreeTxt}${p.soilingFactor && p.soilingFactor !== 1 ? ` · soiling ×${p.soilingFactor}` : ''}</span>
+      ${distTxt ? `<br><span style="color:#666;font-size:11px">${distTxt}</span>` : ''}
+    `);
+  }
+
+  // Centro del análisis
+  const lt = parseFloat($('lat').value), lg = parseFloat($('lng').value);
+  L.marker([lt, lg], {
+    icon: L.divIcon({
+      className: 'pm-marker',
+      html: '<div class="pm-square"></div>',
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    }),
+    interactive: false,
+  }).addTo(lmapLayers);
+
+  // Punto de consumo opcional
+  const cla = parseFloat($('clat').value), clg = parseFloat($('clng').value);
+  if (!isNaN(cla) && !isNaN(clg)) {
+    L.marker([cla, clg], {
+      icon: L.divIcon({
+        className: 'pm-marker',
+        html: '<div class="pm-tri"></div>',
+        iconSize: [14, 12],
+        iconAnchor: [7, 12],
+      }),
+      interactive: false,
+    }).addTo(lmapLayers);
+  }
+
+  // Encuadrar el bounding box (grilla + centro + consumo si aplica)
+  const lats = r.map(p => p.lat).concat(lt, isNaN(cla) ? [] : [cla]);
+  const lngs = r.map(p => p.lng).concat(lg, isNaN(clg) ? [] : [clg]);
+  map.fitBounds([
+    [Math.min(...lats), Math.min(...lngs)],
+    [Math.max(...lats), Math.max(...lngs)],
+  ], { padding: [40, 40], maxZoom: 16 });
+
+  // Si el tab estaba oculto, Leaflet calculó tamaño con clientWidth=0; recalcular
+  setTimeout(() => map.invalidateSize(), 50);
+}
+
+/* ─────────── render: tabla ─────────── */
+function buildTable() {
+  const tbody = $('tbody');
+  const rows = state.results.map((p, i) => {
+    const q = p.score >= 85 ? '<span class="bx bg">Óptimo</span>'
+            : p.score >= 70 ? '<span class="bx bm">Bueno</span>'
+            :                 '<span class="bx bl">Bajo</span>';
+    const sh = p.shadowScore >= 80 ? `<span class="bx bg">${p.shadowScore}</span>`
+             : p.shadowScore >= 60 ? `<span class="bx bm">${p.shadowScore}</span>`
+             :                       `<span class="bx bl">${p.shadowScore}</span>`;
+    const tempCell = p.tempEst != null ? `${p.tempEst.toFixed(1)}°` : '—';
+    const abs = p.absScore ?? 0;
+    const absBx = abs >= 75 ? `<span class="bx bg">${abs}</span>`
+                : abs >= 55 ? `<span class="bx bm">${abs}</span>`
+                :             `<span class="bx bl">${abs}</span>`;
+    const kWp = parseFloat($('kwp').value) || 1;
+    const confCls = p.confidence === 'alta' ? 'bg' : p.confidence === 'media' ? 'bm' : 'bl';
+    const yieldCell = `${p.irr} <span style="color:var(--text3);font-size:10px">±${p.irrBand}</span>`
+      + (p.agreement != null ? ` <span class="bx ${confCls}" title="acuerdo PVGIS↔ERA5">${p.agreement}%</span>` : '');
+    const critCell = p.worst
+      ? `<span title="${p.worst.name}: ${p.worst.dailyYield} kWh/kWp/día">${p.worst.name} ${p.worst.dailyYield}</span>`
+      : '—';
+    return `<tr${i === 0 ? ' style="background:var(--bg2)"' : ''}>
+      <td>${i + 1}${i === 0 ? ' ★' : ''}</td>
+      <td style="font-family:monospace;font-size:10px">${p.lat},${p.lng}</td>
+      <td><strong>${p.score}</strong></td>
+      <td>${absBx}</td>
+      <td title="${p.irr} kWh/kWp · ${(p.irr*kWp).toFixed(0)} kWh para ${kWp} kWp">${yieldCell}</td>
+      <td style="font-size:11px">${critCell}</td>
+      <td><span class="bx bi">${p.irrSource}</span></td>
+      <td>${sh}</td>
+      <td>${p.slope}°</td>
+      <td>${tempCell}</td>
+      <td>${p.dist !== null ? p.dist + ' km' : '—'}</td>
+      <td>${q}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = rows.join('');
+}
+
+/* ─────────── render: gráfico mensual ─────────── */
+function buildMonthly() {
+  if (!state.results.length) return;
+  const best = state.results[0];
+  const worst = state.results[state.results.length - 1];
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const ctx2 = $('monthly-chart').getContext('2d');
+  if (state.monthlyChart) state.monthlyChart.destroy();
+  state.monthlyChart = new Chart(ctx2, {
+    type: 'bar',
+    data: { labels: months, datasets: [
+      { label: 'Punto óptimo', data: best.monthly || [], backgroundColor: '#3B6D11', borderRadius: 3 },
+      { label: 'Punto más bajo', data: worst.monthly || [], backgroundColor: '#F09595', borderRadius: 3 },
+    ] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 10 }, autoSkip: false, maxRotation: 0 }, grid: { display: false } },
+        y: { ticks: { font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.06)' } },
+      },
+    },
+  });
+}
+
+/* ─────────── render: tiempo real ─────────── */
+async function renderRT(top) {
+  $('rt-sec').classList.remove('hidden');
+  $('rt-coords').textContent = `${top.lat}, ${top.lng}`;
+  if (top.elev) $('rt-elev').textContent = `Alt. ${Math.round(top.elev)} m s.n.m.`;
+  $('rt-cards').innerHTML = '<div style="font-size:12px;color:var(--text2)">Cargando condiciones actuales…</div>';
+
+  const d = state.forecast || await fetchForecast(top.lat, top.lng);
+  if (!d?.current) {
+    $('rt-cards').innerHTML = '<div style="font-size:12px;color:var(--text2)">Sin datos disponibles.</div>';
+    return;
+  }
+  const c = d.current;
+  $('rt-time').textContent = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) + ' PET';
+  const irr = Math.round(c.shortwave_radiation || 0);
+  const al = $('rt-alert');
+  al.classList.remove('hidden');
+  al.className = 'alg ' + (irr > 600 ? 'ag' : irr > 200 ? 'aw' : 'ab');
+  al.textContent = irr > 600
+    ? `Radiación excelente: ${irr} W/m² — condiciones ideales para generación`
+    : irr > 200
+    ? `Radiación moderada: ${irr} W/m² — posible nubosidad parcial`
+    : `Radiación baja: ${irr} W/m² — nublado o fuera de horario solar`;
+
+  $('rt-cards').innerHTML = [
+    { v: irr, u: 'W/m²', n: 'Radiación actual' },
+    { v: round(c.temperature_2m, 1), u: '°C', n: 'Temperatura' },
+    { v: round(c.wind_speed_10m, 1), u: 'km/h', n: 'Viento' },
+    { v: round(c.dew_point_2m, 1), u: '°C', n: 'Punto de rocío' },
+  ].map(x => `<div class="rtc"><div class="rtv">${x.v}</div><div class="rtu">${x.u}</div><div class="rtn">${x.n}</div></div>`).join('');
+
+  if (d.daily) {
+    const dn = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    $('fc-row').innerHTML = d.daily.time.slice(0, 7).map((dt, i) => {
+      const day = new Date(dt + 'T12:00:00');
+      return `<div class="fcd">
+        <div style="color:var(--text2);margin-bottom:3px">${dn[day.getDay()]}</div>
+        <div class="fci">${d.daily.shortwave_radiation_sum[i] ? round(d.daily.shortwave_radiation_sum[i], 1) : '—'}</div>
+        <div style="font-size:9px;color:var(--text2)">${d.daily.temperature_2m_max[i] ? Math.round(d.daily.temperature_2m_max[i]) + '°' : '—'}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+/* ─────────── helpers ─────────── */
+function avg(arr) {
+  const v = arr.filter(x => x != null && !isNaN(x));
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+}
+function median(arr) {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+function round(v, d = 1) { return Math.round(v * 10 ** d) / 10 ** d; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
