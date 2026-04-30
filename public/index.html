@@ -160,6 +160,84 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
   </div>
 
   <div class="card">
+    <div class="section-title">Eólico (opcional)</div>
+    <div class="mode-row">
+      <label><input type="checkbox" id="wind-enable"> Calcular potencial eólico (1 fetch extra por análisis, ERA5 horario)</label>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Turbina</label>
+        <select id="wind-turbine">
+          <option value="micro_500w">Micro 500 W (residencial)</option>
+          <option value="small_2kw">Pequeña 2 kW (finca, bombeo)</option>
+          <option value="small_10kw" selected>Pequeña 10 kW (comunidad rural)</option>
+          <option value="medium_100kw">Mediana 100 kW (cooperativa)</option>
+          <option value="utility_2mw">Utility 2 MW (parque eólico)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Altura del hub (m)</label>
+        <input type="number" id="wind-hub" value="18" min="6" max="120" step="2">
+      </div>
+      <div class="field">
+        <label>Rugosidad terreno</label>
+        <select id="wind-roughness">
+          <option value="0.0002">Mar abierto (0.0002 m)</option>
+          <option value="0.03" selected>Agrícola plano (0.03 m)</option>
+          <option value="0.10">Cultivo alto / arbustos (0.10 m)</option>
+          <option value="0.40">Bosque / urbano disperso (0.40 m)</option>
+          <option value="1.00">Bosque cerrado / urbano denso (1.00 m)</option>
+        </select>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">
+      Datos: Open-Meteo Archive ERA5 horario (~9 km). Para topografía compleja
+      (sierra alta) ERA5 sub-estima viento real ~10–20 %. Aproximación razonable
+      para pre-feasibility, no para diseño final de parques.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Análisis económico</div>
+    <div class="row">
+      <div class="field">
+        <label>Modo de uso</label>
+        <select id="econ-mode">
+          <option value="grid">Reemplazo tarifa eléctrica (grid-tied)</option>
+          <option value="diesel">Reemplazo diésel (off-grid bombeo)</option>
+          <option value="ppa">Venta a la red (PPA)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Precio energía (USD/kWh)</label>
+        <input type="number" id="econ-price" value="0.135" step="0.005" min="0">
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="field">
+        <label>CAPEX por kWp (USD)</label>
+        <input type="number" id="econ-capex" value="1000" step="50" min="0">
+      </div>
+      <div class="field">
+        <label>Vida útil (años)</label>
+        <input type="number" id="econ-lifetime" value="20" min="5" max="30">
+      </div>
+      <div class="field">
+        <label>Tasa de descuento (%)</label>
+        <input type="number" id="econ-discount" value="8" step="0.5" min="0" max="30">
+      </div>
+      <div class="field">
+        <label>O&M anual (% CAPEX)</label>
+        <input type="number" id="econ-om" value="1" step="0.1" min="0" max="5">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">
+      Defaults Perú 2026: residencial $1000/kWp, tarifa BT5B ~$0.135/kWh,
+      diésel desplazado ~$1.35/kWh, utility scale $700/kWp.
+    </div>
+  </div>
+
+  <div class="card">
     <div class="section-title">Montaje del panel</div>
     <div class="mode-row">
       <label><input type="checkbox" id="tilt-auto" checked> Tilt + azimut óptimos automáticos (PVGIS)</label>
@@ -261,6 +339,13 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
       <div class="sc"><div class="sc-l">Clearness KT</div><div class="sc-v" id="s-kt">—</div><div class="sc-s">NASA POWER</div></div>
       <div class="sc"><div class="sc-l">Temp. estimada</div><div class="sc-v" id="s-temp">—</div><div class="sc-s" id="s-temp-rng">rango</div></div>
       <div class="sc"><div class="sc-l">Pendiente mín.</div><div class="sc-v" id="s-slope">—</div><div class="sc-s">grados</div></div>
+      <div class="sc"><div class="sc-l">CAPEX</div><div class="sc-v" id="s-capex">—</div><div class="sc-s" id="s-capex-sub">USD total</div></div>
+      <div class="sc"><div class="sc-l">LCOE</div><div class="sc-v" id="s-lcoe">—</div><div class="sc-s" id="s-lcoe-sub">USD/kWh</div></div>
+      <div class="sc"><div class="sc-l">Payback</div><div class="sc-v" id="s-payback">—</div><div class="sc-s" id="s-payback-sub">años</div></div>
+      <div class="sc"><div class="sc-l">NPV @ 20a</div><div class="sc-v" id="s-npv">—</div><div class="sc-s" id="s-npv-sub">USD · IRR —</div></div>
+      <div class="sc" id="sc-wind-cf" style="display:none"><div class="sc-l">Eólico CF</div><div class="sc-v" id="s-wind-cf">—</div><div class="sc-s" id="s-wind-cf-sub">capacity factor</div></div>
+      <div class="sc" id="sc-wind-energy" style="display:none"><div class="sc-l">Eólico anual</div><div class="sc-v" id="s-wind-energy">—</div><div class="sc-s" id="s-wind-energy-sub">kWh/año</div></div>
+      <div class="sc" id="sc-hybrid" style="display:none"><div class="sc-l">Híbrido total</div><div class="sc-v" id="s-hybrid">—</div><div class="sc-s" id="s-hybrid-sub">solar + eólico</div></div>
     </div>
 
     <div class="tabs">
@@ -323,7 +408,7 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
 <script type="module">
 import { generateGrid } from '../src/core/grid.js';
 import { fetchPVGIS } from '../src/api/pvgis.js';
-import { fetchHistorical, fetchForecast } from '../src/api/openmeteo.js';
+import { fetchHistorical, fetchForecast, fetchWindHistory } from '../src/api/openmeteo.js';
 import { fetchElevations, elevationCoverage } from '../src/api/elevation.js';
 import { fetchNASAPower } from '../src/api/nasa-power.js';
 import { cacheGet, cacheSet, cacheStats, purgeAll } from '../src/core/cache.js';
@@ -336,6 +421,8 @@ import {
 import { computeScores, absoluteScore, absoluteCategory } from '../src/core/score.js';
 import { totalEnergy, worstMonth, dailyAverage, sizingRecommendation, MONTH_NAMES_ES } from '../src/core/energy.js';
 import { applySoiling, regionalFallback, withRetry, sourceAgreement, uncertaintyBand, confidenceLabel } from '../src/core/calibration.js';
+import { solarEconomics, paybackCategory, PERU_DEFAULTS as ECON_DEFAULTS } from '../src/core/economics.js';
+import { TURBINE_PRESETS, logLawExtrapolate, capacityFromSeries, capacityFromMean, windCategory } from '../src/core/wind.js';
 import { haversine, SEASONS } from '../src/core/utils.js';
 
 /* ─────────── estado global ─────────── */
@@ -434,11 +521,32 @@ $('load-kwh').addEventListener('input', () => {
   if (state.results.length) renderStats();
 });
 
+/* ─────────── inputs de economía ─────────── */
+$('econ-mode').addEventListener('change', e => {
+  // Sugerir un precio razonable según el modo elegido
+  const defaults = { grid: 0.135, diesel: 1.35, ppa: 0.040 };
+  const v = defaults[e.target.value];
+  if (v != null) $('econ-price').value = v;
+  if (state.results.length) renderStats();
+});
+['econ-price', 'econ-capex', 'econ-lifetime', 'econ-discount', 'econ-om'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    if (state.results.length) renderStats();
+  });
+});
+
 /* ─────────── tilt/aspect ─────────── */
 $('tilt-auto').addEventListener('change', e => {
   const auto = e.target.checked;
   $('tilt').disabled = auto;
   $('aspect').disabled = auto;
+});
+
+/* ─────────── eólico ─────────── */
+['wind-turbine', 'wind-hub', 'wind-roughness'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    if (state.results.length && state.windEnabled && state.windHistory) renderStats();
+  });
 });
 
 /* ─────────── analizar ─────────── */
@@ -580,13 +688,17 @@ async function runAnalysis() {
   const azimuts = points.map(pt => calcAzimutScore(pt, points, elevs));
 
   // Datos contextuales: 1 fetch para el centro (cacheados)
-  $('status').textContent = 'Consultando NASA POWER (clearness) + forecast…';
+  const windEnabled = $('wind-enable').checked;
+  $('status').textContent = `Consultando NASA POWER (clearness) + forecast${windEnabled ? ' + viento ERA5' : ''}…`;
   const lastYear = new Date().getFullYear() - 1;
-  const [forecast, nasa] = await Promise.all([
+  const [forecast, nasa, windHist] = await Promise.all([
     withRetry(() => fetchForecast(lat, lng)),
     withRetry(() => cachedNASA(lat, lng, lastYear - 5, lastYear)),
+    windEnabled ? withRetry(() => fetchWindHistory(lat, lng)) : Promise.resolve(null),
   ]);
   state.forecast = forecast;
+  state.windHistory = windHist;
+  state.windEnabled = windEnabled;
 
   // Temperatura base: promedio diario máximo del forecast (peor caso operativo)
   state.baseTemp = forecast?.daily?.temperature_2m_max
@@ -748,12 +860,19 @@ function exportCSV() {
     p.dist ?? '', p.irrSource, isNaN(p.elev) ? '' : p.elev,
     p.soilingFactor ?? '',
   ]);
+  const econ = state.economics;
   const meta = [
     `# Solar Optimizer export · ${new Date().toISOString()}`,
     `# region: ${state.regionInfo?.region} (confianza ${state.regionInfo?.confidence})`,
     `# centro: ${$('lat').value}, ${$('lng').value} · radio ${$('radius').value} km · grilla ${$('res').value}×${$('res').value}`,
     `# trimestre: ${SEASONS[state.activeSeason].join('–')} · sistema ${kWp} kWp`,
     `# clearness KT: ${state.centerKT?.toFixed(2) ?? 'n/a'} · temp base: ${state.baseTemp != null ? Math.round(state.baseTemp) + '°C' : 'n/a'}`,
+    econ
+      ? `# economía: CAPEX $${econ.capex} · LCOE $${econ.lcoe}/kWh · payback ${econ.simplePaybackYears}a · NPV $${econ.npv} · IRR ${econ.irr ?? 'n/a'}%`
+      : `# economía: no calculada`,
+    state.windResult
+      ? `# eólico: turbina ${state.windResult.turbine.name} · hub ${state.windResult.hubHeight}m · CF ${(state.windResult.cf * 100).toFixed(1)}% · ${state.windResult.annualKwh} kWh/año`
+      : `# eólico: no analizado`,
   ];
   const csvRows = [
     ...meta,
@@ -775,7 +894,9 @@ function exportCSV() {
 }
 
 /* ─────────── URL state encoding ─────────── */
-const URL_FIELDS = ['lat', 'lng', 'radius', 'res', 'clat', 'clng', 'kwp', 'load-kwh', 'tilt', 'aspect'];
+const URL_FIELDS = ['lat', 'lng', 'radius', 'res', 'clat', 'clng', 'kwp', 'load-kwh', 'tilt', 'aspect',
+                    'econ-mode', 'econ-price', 'econ-capex', 'econ-lifetime', 'econ-discount', 'econ-om',
+                    'wind-turbine', 'wind-hub', 'wind-roughness'];
 
 function pushUrlState() {
   try {
@@ -788,6 +909,7 @@ function pushUrlState() {
     params.set('auto', state.autoPreset ? '1' : '0');
     params.set('ta', $('tilt-auto').checked ? '1' : '0');
     params.set('xs', $('cross-source').checked ? '1' : '0');
+    params.set('we', $('wind-enable').checked ? '1' : '0');
     history.replaceState(null, '', '#' + params.toString());
   } catch { /* navegador antiguo, ignorar */ }
 }
@@ -819,6 +941,9 @@ function loadUrlState() {
     }
     if (params.has('xs')) {
       $('cross-source').checked = params.get('xs') === '1';
+    }
+    if (params.has('we')) {
+      $('wind-enable').checked = params.get('we') === '1';
     }
   } catch (e) {
     console.warn('URL state inválido:', e);
@@ -975,6 +1100,119 @@ function renderStats() {
   $('s-slope').textContent = Math.min(...r.map(p => p.slope)) + '°';
 
   renderSizing(top, kWp);
+  renderEconomics(top, kWp);
+  renderWind(kWp);
+}
+
+/* ─────────── render: eólico ─────────── */
+function renderWind(kWp) {
+  const cards = ['sc-wind-cf', 'sc-wind-energy', 'sc-hybrid'];
+  if (!state.windEnabled || !state.windHistory) {
+    cards.forEach(id => $(id).style.display = 'none');
+    state.windResult = null;
+    return;
+  }
+  const turbineId = $('wind-turbine').value;
+  const turbine = TURBINE_PRESETS[turbineId];
+  if (!turbine) {
+    cards.forEach(id => $(id).style.display = 'none');
+    return;
+  }
+  const hubHeight = parseFloat($('wind-hub').value);
+  const roughness = parseFloat($('wind-roughness').value);
+  const wh = state.windHistory;
+
+  // Elegir la fuente de viento más cercana al hub y extrapolar al hub real
+  const useHi = hubHeight > 50; // 100m series para hubs altos
+  const refSeries = useHi ? wh.wind100m : wh.wind10m;
+  const refHeight = useHi ? 100 : 10;
+
+  // Extrapolar cada hora con log-law a la altura del hub
+  const hubSeries = refSeries.map(v =>
+    v != null && !isNaN(v) ? logLawExtrapolate(v, refHeight, hubHeight, roughness) : null
+  );
+  const cap = capacityFromSeries(hubSeries, turbine);
+  state.windResult = {
+    turbine,
+    hubHeight,
+    refHeight,
+    cf: cap.cf,
+    annualKwh: cap.annualKwh,
+    hoursAboveCutIn: cap.hoursAboveCutIn,
+    meanHubWind: hubSeries.filter(v => v != null && !isNaN(v))
+      .reduce((a, b, _, arr) => a + b / arr.length, 0),
+  };
+
+  cards.forEach(id => $(id).style.display = '');
+
+  $('s-wind-cf').textContent = (cap.cf * 100).toFixed(1) + '%';
+  $('s-wind-cf-sub').textContent = `${windCategory(cap.cf)} · ${turbine.power} kW`;
+
+  $('s-wind-energy').textContent = cap.annualKwh.toLocaleString('es-PE');
+  $('s-wind-energy-sub').textContent = `${cap.hoursAboveCutIn} h/año útiles · v̄ ${state.windResult.meanHubWind.toFixed(1)} m/s @ ${hubHeight}m`;
+
+  // Híbrido = solar (kWp × yield × período del trimestre escalado a anual) + eólico
+  const top = state.results[0];
+  const [m1, m2] = SEASONS[state.activeSeason];
+  const annualSolarYield = top.irr * (12 / (m2 - m1 + 1));
+  const solarAnual = annualSolarYield * kWp;
+  const total = Math.round(solarAnual + cap.annualKwh);
+  $('s-hybrid').textContent = total.toLocaleString('es-PE');
+  $('s-hybrid-sub').textContent = `Solar ${Math.round(solarAnual).toLocaleString('es-PE')} + Eólico ${cap.annualKwh.toLocaleString('es-PE')} kWh/año`;
+}
+
+/* ─────────── render: economía (LCOE, payback, NPV) ─────────── */
+function renderEconomics(top, kWp) {
+  const capexPerKwp = parseFloat($('econ-capex').value);
+  const energyPrice = parseFloat($('econ-price').value);
+  const lifetimeYears = parseFloat($('econ-lifetime').value);
+  const discountRate = parseFloat($('econ-discount').value) / 100;
+  const omRate = parseFloat($('econ-om').value) / 100;
+
+  if (!top || !kWp || !capexPerKwp || !energyPrice ||
+      isNaN(lifetimeYears) || isNaN(discountRate) || isNaN(omRate)) {
+    ['s-capex', 's-lcoe', 's-payback', 's-npv'].forEach(id => $(id).textContent = '—');
+    state.economics = null;
+    return;
+  }
+
+  const econ = solarEconomics({
+    kWp,
+    annualEnergyKwhPerKwp: top.irr * (12 / (SEASONS[state.activeSeason][1] - SEASONS[state.activeSeason][0] + 1)),
+    capexPerKwp,
+    energyPrice,
+    lifetimeYears,
+    discountRate,
+    omRate,
+    degradationRate: ECON_DEFAULTS.degradationRate,
+    escalation: ECON_DEFAULTS.escalation,
+  });
+  if (!econ) {
+    ['s-capex', 's-lcoe', 's-payback', 's-npv'].forEach(id => $(id).textContent = '—');
+    state.economics = null;
+    return;
+  }
+  state.economics = econ;
+
+  $('s-capex').textContent = '$' + econ.capex.toLocaleString('es-PE');
+  $('s-capex-sub').textContent = `${kWp} kWp · $${capexPerKwp}/kWp`;
+
+  $('s-lcoe').textContent = econ.lcoe != null ? '$' + econ.lcoe.toFixed(3) : '—';
+  $('s-lcoe-sub').textContent = econ.lcoe != null && energyPrice
+    ? (econ.lcoe < energyPrice ? `< $${energyPrice} (rentable)` : `> $${energyPrice} (no rentable)`)
+    : 'USD/kWh';
+
+  if (econ.simplePaybackYears != null) {
+    $('s-payback').textContent = econ.simplePaybackYears.toFixed(1) + 'a';
+    $('s-payback-sub').textContent = paybackCategory(econ.simplePaybackYears);
+  } else {
+    $('s-payback').textContent = '—';
+    $('s-payback-sub').textContent = 'no rentable';
+  }
+
+  const npvSign = econ.npv >= 0 ? '+' : '';
+  $('s-npv').textContent = npvSign + '$' + Math.abs(econ.npv).toLocaleString('es-PE');
+  $('s-npv-sub').textContent = `IRR ${econ.irr != null ? econ.irr.toFixed(1) + '%' : '—'} · ${lifetimeYears}a · r=${(discountRate * 100).toFixed(1)}%`;
 }
 
 function renderSizing(top, kWp) {

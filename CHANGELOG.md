@@ -2,6 +2,39 @@
 
 Journey del desarrollo y decisiones clave del proyecto.
 
+## v0.5 — análisis económico + potencial eólico (2026-04-28)
+
+### Análisis económico (`src/core/economics.js`)
+
+- LCOE (Levelized Cost of Energy) con depreciación + descuento
+- Simple payback (años) y discounted payback con interpolación lineal
+- NPV @ vida útil (default 20 años, configurable)
+- IRR (Internal Rate of Return) vía Newton-Raphson
+- 3 modos: grid-tied, off-grid (reemplazo diésel), PPA
+- Defaults Perú 2026: $1000/kWp residencial, $0.135/kWh tarifa BT5B, $1.35/kWh diésel
+- Inflación de precio de energía configurable (default 2.5 %/año)
+- Persistencia en URL state + CSV export con metadata económica
+
+### Potencial eólico (`src/core/wind.js` + `src/api/openmeteo.js`)
+
+- Curvas de potencia para 5 turbinas: 500 W, 2 kW, 10 kW, 100 kW, 2 MW
+- Extrapolación log-law a la altura del hub (rugosidad configurable)
+- Capacity factor desde serie horaria ERA5 (8760 h) o desde velocidad media
+  (Rayleigh distribution, k=2)
+- Open-Meteo Archive endpoint para `wind_speed_10m` y `wind_speed_100m` horarios
+- Análisis híbrido: solar + eólico = energía anual total
+- Toggle opcional (1 fetch extra para todo el análisis)
+- Categorización cualitativa (excelente / muy bueno / bueno / marginal / no viable)
+
+### Limitaciones honestas
+
+- ERA5 (~9 km) sub-estima vientos en topografía compleja (sierra alta) ~10-20 %
+- No modelamos densidad de aire por altitud (sub-estima sierra ~10 %)
+- Las curvas de potencia son aproximadas; cada fabricante difiere
+- Para diseño final de parques eólicos usar mediciones de mástil + WAsP / WindPRO
+
+---
+
 ## v0.4 — calibración + validación + COES + LOO (2026-04-28)
 
 ### Validación riguroso

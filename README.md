@@ -106,6 +106,8 @@ EnerKu/
 │       ├── shadows.js          # Slope/shadow/azimut + horizon ring
 │       ├── score.js            # Score compuesto + score absoluto
 │       ├── energy.js           # Conversión yield→energía + mes crítico + sizing
+│       ├── economics.js        # LCOE + payback + NPV + IRR (3 modos: grid/diesel/PPA)
+│       ├── wind.js             # Capacity factor eólico + curvas de turbina + log-law
 │       ├── calibration.js      # SOILING_BY_REGION + LOO + COES + retry/proxy
 │       ├── cache.js            # localStorage TTL para PVGIS/ERA5/NASA
 │       └── utils.js            # haversine, SEASONS
@@ -175,9 +177,11 @@ Detalle completo: [VALIDATION.md](./VALIDATION.md).
 - [ ] Sub-bandas regionales (costa norte / centro / sur) para reducir error a ~3 %
 - [ ] Validación con datos terrestres SENAMHI (piranómetros)
 - [ ] Detección de "garúa" en costa central (ajuste invierno por nubosidad costera)
-- [ ] Soporte para tracking 1-eje en el cálculo principal
+- [ ] Soporte para tracking 1-eje en el cálculo solar principal
 - [ ] Modelado de bifacialidad / temp-coef de panel específico
 - [ ] Horizonte solar 360° con DEM extendido (no solo grilla)
+- [ ] Forecast de precios SEIN (COES) para cálculo de revenue PPA dinámico
+- [ ] Mapa Perú-wide de potencial eólico/solar pre-computado (estilo atlite output)
 
 Ver [CHANGELOG.md](./CHANGELOG.md) para el journey completo de mejoras realizadas.
 

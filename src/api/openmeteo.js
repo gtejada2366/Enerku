@@ -69,6 +69,58 @@ export async function fetchHistorical(lat, lng, m1 = 1, m2 = 12) {
 }
 
 /**
+ * Velocidad de viento histórica horaria (10m y 100m) para un año completo.
+ * Útil para cálculo de capacity factor eólico vía curva de potencia.
+ *
+ * @param {number} lat
+ * @param {number} lng
+ * @returns {Promise<{
+ *   wind10m: number[],          // 8760 valores en m/s
+ *   wind100m: number[],
+ *   meanWind10m: number,
+ *   meanWind100m: number,
+ *   year: number,
+ *   source: string
+ * } | null>}
+ */
+export async function fetchWindHistory(lat, lng) {
+  try {
+    const year = new Date().getFullYear() - 1;
+    const url = new URL(`${OM_BASE}/archive`);
+    url.searchParams.set('latitude', lat);
+    url.searchParams.set('longitude', lng);
+    url.searchParams.set('hourly', 'wind_speed_10m,wind_speed_100m');
+    url.searchParams.set('start_date', `${year}-01-01`);
+    url.searchParams.set('end_date', `${year}-12-31`);
+    url.searchParams.set('timezone', 'America/Lima');
+    url.searchParams.set('wind_speed_unit', 'ms');
+
+    const res = await fetch(url.toString());
+    if (!res.ok) return null;
+    const data = await res.json();
+    const wind10m = data?.hourly?.wind_speed_10m;
+    const wind100m = data?.hourly?.wind_speed_100m;
+    if (!wind10m || !wind100m) return null;
+
+    const valid10 = wind10m.filter(v => v != null && !isNaN(v));
+    const valid100 = wind100m.filter(v => v != null && !isNaN(v));
+    const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+
+    return {
+      wind10m,
+      wind100m,
+      meanWind10m: valid10.length ? Math.round(mean(valid10) * 100) / 100 : null,
+      meanWind100m: valid100.length ? Math.round(mean(valid100) * 100) / 100 : null,
+      year,
+      source: 'ERA5-Land',
+    };
+  } catch (err) {
+    console.warn('[Wind History] Error:', err.message);
+    return null;
+  }
+}
+
+/**
  * Condiciones actuales + pronóstico 7 días.
  * Variables: temperatura, viento, punto de rocío, radiación instantánea.
  *
