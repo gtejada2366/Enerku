@@ -160,6 +160,104 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
   </div>
 
   <div class="card">
+    <div class="section-title">Bombeo solar agrícola (opcional)</div>
+    <div class="mode-row">
+      <label><input type="checkbox" id="pump-enable"> Calcular sistema de bombeo (riego, ganadería, agua potable)</label>
+    </div>
+
+    <details style="margin-top:8px">
+      <summary style="cursor:pointer;font-size:12px;color:var(--text2)">Auto-estimar caudal desde cultivo</summary>
+      <div class="row" style="margin-top:8px">
+        <div class="field">
+          <label>Cultivo</label>
+          <select id="pump-crop">
+            <option value="">— sin estimar —</option>
+            <option value="papa">Papa</option>
+            <option value="maiz">Maíz</option>
+            <option value="arroz">Arroz</option>
+            <option value="alfalfa">Alfalfa</option>
+            <option value="hortalizas">Hortalizas</option>
+            <option value="cafe">Café</option>
+            <option value="cacao">Cacao</option>
+            <option value="esparrago">Espárrago</option>
+            <option value="uva">Uva (vid)</option>
+            <option value="palta">Palta (aguacate)</option>
+            <option value="caña">Caña de azúcar</option>
+            <option value="pasto">Pastos / forraje</option>
+            <option value="ganado_consumo">Bebedero ganado</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Hectáreas (o cabezas si ganado)</label>
+          <input type="number" id="pump-hectares" value="1" step="0.1" min="0">
+        </div>
+        <div class="field">
+          <label>Sistema de riego</label>
+          <select id="pump-irrigation">
+            <option value="goteo">Goteo (50% del bruto)</option>
+            <option value="microaspersion">Microaspersión (55%)</option>
+            <option value="aspersion">Aspersión (75%)</option>
+            <option value="inundacion">Inundación / surcos (100%)</option>
+          </select>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end">
+          <button class="run alt" id="pump-from-crop" style="height:34px">Aplicar</button>
+        </div>
+      </div>
+      <div id="pump-crop-hint" class="muted" style="font-size:11px;margin-top:6px"></div>
+    </details>
+
+    <div class="row" style="margin-top:10px">
+      <div class="field">
+        <label>Caudal diario requerido (m³/día)</label>
+        <input type="number" id="pump-flow" value="20" step="1" min="0">
+      </div>
+      <div class="field">
+        <label>Horas de operación / día</label>
+        <input type="number" id="pump-hours" value="6" step="0.5" min="1" max="12">
+      </div>
+      <div class="field">
+        <label>Días de autonomía (tanque)</label>
+        <input type="number" id="pump-autonomy" value="2" step="1" min="1" max="7">
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="field">
+        <label>Altura estática (m) <span style="color:var(--text3)">vert. fuente→entrega</span></label>
+        <input type="number" id="pump-static" value="30" step="1" min="0">
+      </div>
+      <div class="field">
+        <label>Longitud tubería (m)</label>
+        <input type="number" id="pump-length" value="80" step="5" min="0">
+      </div>
+      <div class="field">
+        <label>Presión deseada (m) <span style="color:var(--text3)">aspersión ≈20, goteo ≈10</span></label>
+        <input type="number" id="pump-pressure" value="10" step="1" min="0">
+      </div>
+      <div class="field">
+        <label>Diámetro tubería</label>
+        <select id="pump-diameter">
+          <option value="">Auto-recomendar</option>
+          <option value="25">25 mm (1")</option>
+          <option value="32">32 mm (1¼")</option>
+          <option value="40">40 mm (1½")</option>
+          <option value="50">50 mm (2")</option>
+          <option value="63">63 mm (2½")</option>
+          <option value="75">75 mm (3")</option>
+          <option value="90">90 mm (3½")</option>
+          <option value="110">110 mm (4")</option>
+          <option value="160">160 mm (6")</option>
+        </select>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">
+      El kWp PV se dimensiona usando el <strong>mes crítico</strong> del análisis solar
+      principal (con derating 0.85 + margen 10 %). Para bombeo directo (sin batería)
+      coincidir horas con mediodía solar.
+    </div>
+  </div>
+
+  <div class="card">
     <div class="section-title">Eólico (opcional)</div>
     <div class="mode-row">
       <label><input type="checkbox" id="wind-enable"> Calcular potencial eólico (1 fetch extra por análisis, ERA5 horario)</label>
@@ -346,6 +444,10 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
       <div class="sc" id="sc-wind-cf" style="display:none"><div class="sc-l">Eólico CF</div><div class="sc-v" id="s-wind-cf">—</div><div class="sc-s" id="s-wind-cf-sub">capacity factor</div></div>
       <div class="sc" id="sc-wind-energy" style="display:none"><div class="sc-l">Eólico anual</div><div class="sc-v" id="s-wind-energy">—</div><div class="sc-s" id="s-wind-energy-sub">kWh/año</div></div>
       <div class="sc" id="sc-hybrid" style="display:none"><div class="sc-l">Híbrido total</div><div class="sc-v" id="s-hybrid">—</div><div class="sc-s" id="s-hybrid-sub">solar + eólico</div></div>
+      <div class="sc" id="sc-pump-tdh" style="display:none"><div class="sc-l">Bombeo TDH</div><div class="sc-v" id="s-pump-tdh">—</div><div class="sc-s" id="s-pump-tdh-sub">Q · D tubería</div></div>
+      <div class="sc" id="sc-pump-energy" style="display:none"><div class="sc-l">Bombeo kWh/día</div><div class="sc-v" id="s-pump-energy">—</div><div class="sc-s" id="s-pump-energy-sub">P_eléctrico · η</div></div>
+      <div class="sc" id="sc-pump-kwp" style="display:none"><div class="sc-l">PV requerido</div><div class="sc-v" id="s-pump-kwp">—</div><div class="sc-s" id="s-pump-kwp-sub">por mes crítico</div></div>
+      <div class="sc" id="sc-pump-storage" style="display:none"><div class="sc-l">Tanque</div><div class="sc-v" id="s-pump-storage">—</div><div class="sc-s" id="s-pump-storage-sub">vs batería</div></div>
     </div>
 
     <div class="tabs">
@@ -423,6 +525,7 @@ import { totalEnergy, worstMonth, dailyAverage, sizingRecommendation, MONTH_NAME
 import { applySoiling, regionalFallback, withRetry, sourceAgreement, uncertaintyBand, confidenceLabel } from '../src/core/calibration.js';
 import { solarEconomics, paybackCategory, PERU_DEFAULTS as ECON_DEFAULTS } from '../src/core/economics.js';
 import { TURBINE_PRESETS, logLawExtrapolate, capacityFromSeries, capacityFromMean, windCategory } from '../src/core/wind.js';
+import { pumpingAnalysis, waterFromCrop, CROP_WATER_NEEDS } from '../src/core/pumping.js';
 import { haversine, SEASONS } from '../src/core/utils.js';
 
 /* ─────────── estado global ─────────── */
@@ -547,6 +650,36 @@ $('tilt-auto').addEventListener('change', e => {
   $(id).addEventListener('input', () => {
     if (state.results.length && state.windEnabled && state.windHistory) renderStats();
   });
+});
+
+/* ─────────── bombeo ─────────── */
+['pump-flow', 'pump-static', 'pump-length', 'pump-pressure', 'pump-hours',
+ 'pump-autonomy', 'pump-diameter'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    if (state.results.length && $('pump-enable').checked) renderStats();
+  });
+});
+$('pump-enable').addEventListener('change', () => {
+  if (state.results.length) renderStats();
+});
+
+$('pump-from-crop').addEventListener('click', () => {
+  const cropId = $('pump-crop').value;
+  const ha = parseFloat($('pump-hectares').value) || 0;
+  const irr = $('pump-irrigation').value;
+  if (!cropId || ha <= 0) {
+    $('pump-crop-hint').textContent = 'Elegí cultivo y hectáreas (o cabezas para ganado).';
+    return;
+  }
+  const water = waterFromCrop({ cropId, hectares: ha, irrigationType: irr, headCount: ha });
+  if (!water) return;
+  $('pump-flow').value = water.dailyM3Active;
+  $('pump-crop-hint').textContent =
+    `${water.cropName} · ${ha} ${cropId === 'ganado_consumo' ? 'cabezas' : 'ha'} · `
+    + `${water.annualM3.toLocaleString('es-PE')} m³/año (${water.season || '—'}) · `
+    + `${water.dailyM3Active} m³/día en período activo`
+    + (water.irrigationFactor != null ? ` · riego ${water.irrigationName} (×${water.irrigationFactor})` : '');
+  if (state.results.length && $('pump-enable').checked) renderStats();
 });
 
 /* ─────────── analizar ─────────── */
@@ -873,6 +1006,9 @@ function exportCSV() {
     state.windResult
       ? `# eólico: turbina ${state.windResult.turbine.name} · hub ${state.windResult.hubHeight}m · CF ${(state.windResult.cf * 100).toFixed(1)}% · ${state.windResult.annualKwh} kWh/año`
       : `# eólico: no analizado`,
+    state.pumping
+      ? `# bombeo: Q ${state.pumping.flowM3hr}m³/h · TDH ${state.pumping.tdh}m · P ${(state.pumping.electricKW*1000).toFixed(0)}W · ${state.pumping.dailyKwh}kWh/día · req ${state.pumping.requiredKwp}kWp · bomba ${state.pumping.pumpRec.primary?.name ?? 'n/a'} ($${state.pumping.pumpCostUSD ?? 'n/a'}) · tanque ${state.pumping.storage.tank.capacityM3}m³ ($${state.pumping.storage.tank.estimatedCostUSD})`
+      : `# bombeo: no analizado`,
   ];
   const csvRows = [
     ...meta,
@@ -896,7 +1032,9 @@ function exportCSV() {
 /* ─────────── URL state encoding ─────────── */
 const URL_FIELDS = ['lat', 'lng', 'radius', 'res', 'clat', 'clng', 'kwp', 'load-kwh', 'tilt', 'aspect',
                     'econ-mode', 'econ-price', 'econ-capex', 'econ-lifetime', 'econ-discount', 'econ-om',
-                    'wind-turbine', 'wind-hub', 'wind-roughness'];
+                    'wind-turbine', 'wind-hub', 'wind-roughness',
+                    'pump-flow', 'pump-static', 'pump-length', 'pump-pressure', 'pump-hours',
+                    'pump-autonomy', 'pump-diameter', 'pump-crop', 'pump-hectares', 'pump-irrigation'];
 
 function pushUrlState() {
   try {
@@ -910,6 +1048,7 @@ function pushUrlState() {
     params.set('ta', $('tilt-auto').checked ? '1' : '0');
     params.set('xs', $('cross-source').checked ? '1' : '0');
     params.set('we', $('wind-enable').checked ? '1' : '0');
+    params.set('pe', $('pump-enable').checked ? '1' : '0');
     history.replaceState(null, '', '#' + params.toString());
   } catch { /* navegador antiguo, ignorar */ }
 }
@@ -944,6 +1083,9 @@ function loadUrlState() {
     }
     if (params.has('we')) {
       $('wind-enable').checked = params.get('we') === '1';
+    }
+    if (params.has('pe')) {
+      $('pump-enable').checked = params.get('pe') === '1';
     }
   } catch (e) {
     console.warn('URL state inválido:', e);
@@ -1102,6 +1244,88 @@ function renderStats() {
   renderSizing(top, kWp);
   renderEconomics(top, kWp);
   renderWind(kWp);
+  renderPumping(top);
+}
+
+/* ─────────── render: bombeo solar agrícola ─────────── */
+function renderPumping(top) {
+  const cards = ['sc-pump-tdh', 'sc-pump-energy', 'sc-pump-kwp', 'sc-pump-storage'];
+  const enabled = $('pump-enable').checked;
+  if (!enabled || !top || !top.worst) {
+    cards.forEach(id => $(id).style.display = 'none');
+    state.pumping = null;
+    return;
+  }
+
+  const dailyVolumeM3 = parseFloat($('pump-flow').value);
+  const staticHead = parseFloat($('pump-static').value);
+  const pipeLength = parseFloat($('pump-length').value);
+  const pressureHead = parseFloat($('pump-pressure').value);
+  const hours = parseFloat($('pump-hours').value);
+  const autonomy = parseFloat($('pump-autonomy').value);
+  const diameterRaw = $('pump-diameter').value;
+  const pipeDiameter = diameterRaw ? parseFloat(diameterRaw) : null;
+
+  if (!dailyVolumeM3 || isNaN(staticHead) || !hours) {
+    cards.forEach(id => $(id).style.display = 'none');
+    state.pumping = null;
+    return;
+  }
+
+  const result = pumpingAnalysis({
+    dailyVolumeM3,
+    staticHead,
+    pipeLengthM: pipeLength,
+    pipeDiameterMm: pipeDiameter,
+    pressureHead,
+    hoursPerDay: hours,
+    criticalDailyYieldPerKwp: top.worst.dailyYield,
+    daysAutonomy: autonomy,
+  });
+  if (!result) {
+    cards.forEach(id => $(id).style.display = 'none');
+    return;
+  }
+  state.pumping = result;
+
+  cards.forEach(id => $(id).style.display = '');
+
+  $('s-pump-tdh').textContent = result.tdh + ' m';
+  $('s-pump-tdh-sub').textContent = `Q ${result.flowM3hr} m³/h · Ø ${result.diameterMm}mm · fricción ${result.frictionLossM}m`;
+
+  $('s-pump-energy').textContent = result.dailyKwh.toFixed(2) + ' kWh';
+  $('s-pump-energy-sub').textContent = `P_elec ${(result.electricKW * 1000).toFixed(0)} W · η_bomba ${(result.pumpEfficiency * 100).toFixed(0)}%`;
+
+  if (result.requiredKwp) {
+    $('s-pump-kwp').textContent = result.requiredKwp + ' kWp';
+    $('s-pump-kwp-sub').textContent = `mes crítico ${top.worst.name} · ${top.worst.dailyYield} kWh/kWp/día`;
+  } else {
+    $('s-pump-kwp').textContent = '—';
+    $('s-pump-kwp-sub').textContent = 'sin datos mes crítico';
+  }
+
+  const tank = result.storage.tank;
+  $('s-pump-storage').textContent = tank.capacityM3 + ' m³';
+  $('s-pump-storage-sub').textContent = `tanque $${tank.estimatedCostUSD} vs batería $${result.storage.battery.estimatedCostUSD} (${result.storage.recommendation === 'tank' ? 'usá tanque' : 'a evaluar'})`;
+
+  // Recomendación de bomba: actualizar en una banner si hay
+  const banner = $('sizing-banner');
+  if (result.pumpRec.primary) {
+    const p = result.pumpRec.primary;
+    const cost = result.pumpCostUSD;
+    banner.classList.remove('hidden');
+    banner.className = 'alg ag';
+    banner.innerHTML = `
+      <strong>Recomendación de bomba</strong><br>
+      <strong>${p.name}</strong> · ${p.typicalUse}<br>
+      Potencia eléctrica: <strong>${(result.electricKW * 1000).toFixed(0)} W</strong> ·
+      Costo bomba estimado: <strong>$${cost} USD</strong> ·
+      ${result.pumpRec.message}
+      ${result.pumpRec.alternatives.length
+        ? `<br><span style="font-size:11px">Alternativas: ${result.pumpRec.alternatives.map(a => a.name).join(', ')}</span>`
+        : ''}
+    `;
+  }
 }
 
 /* ─────────── render: eólico ─────────── */

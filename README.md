@@ -38,7 +38,10 @@ Default: análisis de Cusco (lat -13.5319, lng -71.9675, radio 3 km, grilla 4×4
 - Comparar 4–25 sitios candidatos dentro de un área pequeña (ranking relativo)
 - Pre-feasibility de proyectos rurales / agrícolas <$100 k de inversión
 - Dimensionamiento off-grid usando el mes crítico
+- **Bombeo solar agrícola completo**: caudal/altura → bomba + kWp + tanque + costo
 - Estimar yield esperado en kWh/kWp/año con ±6.5 % de error promedio
+- Análisis económico (LCOE, payback, NPV, IRR) en 3 modos
+- Potencial eólico (5 turbinas, log-law extrapolation)
 - Exportar resultados (CSV) para reportes de proyecto
 
 ❌ **No sirve para**
@@ -108,6 +111,7 @@ EnerKu/
 │       ├── energy.js           # Conversión yield→energía + mes crítico + sizing
 │       ├── economics.js        # LCOE + payback + NPV + IRR (3 modos: grid/diesel/PPA)
 │       ├── wind.js             # Capacity factor eólico + curvas de turbina + log-law
+│       ├── pumping.js          # Bombeo solar agrícola: TDH + bomba + tanque + cultivos
 │       ├── calibration.js      # SOILING_BY_REGION + LOO + COES + retry/proxy
 │       ├── cache.js            # localStorage TTL para PVGIS/ERA5/NASA
 │       └── utils.js            # haversine, SEASONS

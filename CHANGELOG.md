@@ -2,6 +2,46 @@
 
 Journey del desarrollo y decisiones clave del proyecto.
 
+## v0.6 — bombeo solar agrícola (2026-05-02)
+
+### Calculadora completa de bombeo (`src/core/pumping.js`)
+
+- **5 tipos de bomba** con rangos de operación, eficiencia típica y costo $/kW:
+  helicoidal superficial, helicoidal sumergible, centrífuga superficial, centrífuga
+  sumergible, diafragma. Sistema recomienda la mejor para Q + H del proyecto.
+- **TDH (Total Dynamic Head)** = altura estática + fricción tubería + presión deseada
+- **Pérdida por fricción** vía Hazen-Williams (PVC/HDPE/galvanizado)
+- **Diámetro de tubería auto-recomendado** según velocidad target 1.5 m/s, snap a
+  tamaños comerciales (25/32/40/50/63/75/90/110/140/160/200 mm)
+- **Potencia hidráulica → eléctrica** con η_bomba × η_motor × η_controller
+- **kWp requerido** dimensionado por mes crítico (del análisis solar) con
+  derating 0.85 + margen 10 %
+- **Almacenamiento**: tanque vs batería con costos referenciales Perú 2026
+  (PE $0.12/L vs LFP $400/kWh) y recomendación automática
+
+### Helper de cultivo → caudal
+
+13 cultivos comunes Perú con consumo típico m³/ha/año:
+- Estacionales: papa, maíz, arroz, uva
+- Permanentes: alfalfa, hortalizas, café, cacao, palta, caña, pasto, espárrago
+- Especial: bebedero ganado (50 L/cabeza/día)
+
+4 sistemas de riego con factor de eficiencia: inundación (1.00), aspersión (0.75),
+microaspersión (0.55), goteo (0.50).
+
+UI: dropdown cultivo + hectáreas + sistema → click "Aplicar" auto-llena caudal.
+
+### UI principal
+
+- Card "Bombeo solar agrícola" con toggle, helper de cultivo expandible, 7 inputs
+  técnicos (caudal, alturas, fricción, presión, horas, días autonomía, diámetro)
+- 4 stat cards visibles cuando activo: TDH, kWh/día, kWp requerido, tanque vs batería
+- Banner verde con recomendación de bomba (tipo, costo, alternativas)
+- CSV export con metadata completa de bombeo
+- URL state preserva todos los campos pump-*
+
+---
+
 ## v0.5 — análisis económico + potencial eólico (2026-04-28)
 
 ### Análisis económico (`src/core/economics.js`)
