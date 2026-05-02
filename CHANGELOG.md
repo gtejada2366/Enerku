@@ -2,6 +2,67 @@
 
 Journey del desarrollo y decisiones clave del proyecto.
 
+## v0.7 — reporte PDF profesional + baterías detalladas (2026-05-02)
+
+### Reporte PDF profesional (`src/core/pdf-report.js`)
+
+Convierte la calculadora en una herramienta de **entrega comercial** seria.
+Genera un PDF multi-página con jsPDF + autoTable embedido en la app.
+
+**Estructura del reporte (6–10 páginas según opciones activas):**
+1. Portada con cliente, proyecto, analista, fecha, reporte ID único
+2. Resumen ejecutivo (todas las métricas clave en tabla)
+3. Análisis regional (región detectada, descripción, contexto técnico)
+4. Ranking de puntos solar (top 10 con yield ± banda, sombra, pendiente, temp)
+5. Generación mensual (chart Chart.js embebido como PNG)
+6. Análisis económico completo (CAPEX, LCOE, payback, NPV, IRR)
+7. Bombeo agrícola (si activo): hidráulica, motor, bomba, almacenamiento
+8. Baterías (si activo): química elegida + comparativa de 5 químicas
+9. Eólico (si activo): turbina, hub, CF, energía anual, híbrido total
+10. Limitaciones + disclaimers + firma del analista
+
+**Personalización**: 3 inputs (cliente, analista, empresa) que aparecen en
+portada, header de cada página y bloque de firma final.
+
+**ID único** por reporte: `EK-YYYYMMDD-XXXX` para trazabilidad.
+
+### Sistema de baterías detallado (`src/core/battery.js`)
+
+5 químicas pre-cargadas con parámetros físicos reales (DOD, η_RT, ciclos,
+vida calendario, costo $/kWh, autodescarga, notas técnicas):
+- Plomo-ácido FLA / AGM / GEL
+- Litio LFP / NMC
+
+**Sizing automático**: capacidad bruta = (E_diaria × días) / (DOD × η_RT × T_factor × η_inv)
+
+**Lifetime modelado**:
+- Por ciclos (ciclos disponibles / ciclos por año)
+- Por calendario (años máximos químicos)
+- Limitado por el menor de los dos
+
+**LCOS (Levelized Cost of Storage)** con descuento + reemplazos planificados
++ curva de aprendizaje (5 %/año reducción precio lithium históricamente).
+
+**Recomendación automática** según contexto:
+- Selva/costa cálida → siempre LFP (plomo-ácido sufre >35 °C)
+- Sierra con presupuesto → LFP por LCOS
+- Presupuesto ajustado + mantenimiento → FLA
+- Telecom / comercial → siempre LFP por confiabilidad
+
+UI: 4 inputs (demanda diaria, días autonomía, química, ciclos/año) + 3 stat
+cards (capacidad bruta/útil, CAPEX, vida útil + LCOS).
+
+Integrado al PDF: sección dedicada con tabla comparativa de las 5 químicas
+mostrando cuál fue la elegida vs alternativas.
+
+### Otros cambios
+
+- URL state preserva `bat-*` y `rep-*` fields
+- CSV export con metadata de batería y referencia al reporte
+- Botón "Generar PDF" aparece tras "Analizar área"
+
+---
+
 ## v0.6 — bombeo solar agrícola (2026-05-02)
 
 ### Calculadora completa de bombeo (`src/core/pumping.js`)

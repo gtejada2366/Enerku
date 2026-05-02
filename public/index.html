@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.0/jspdf.plugin.autotable.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -157,6 +159,64 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
       </div>
     </div>
     <div id="sizing-banner" class="hidden" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Almacenamiento — baterías (opcional)</div>
+    <div class="mode-row">
+      <label><input type="checkbox" id="bat-enable"> Calcular sistema de baterías (off-grid o respaldo)</label>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Demanda diaria (kWh/día)</label>
+        <input type="number" id="bat-daily" value="5" step="0.5" min="0.1">
+      </div>
+      <div class="field">
+        <label>Días de autonomía</label>
+        <input type="number" id="bat-days" value="2" step="1" min="1" max="7">
+      </div>
+      <div class="field">
+        <label>Química preferida</label>
+        <select id="bat-chemistry">
+          <option value="auto">Recomendar automática</option>
+          <option value="lifepo4">Litio LFP (estándar moderno)</option>
+          <option value="nmc">Litio NMC</option>
+          <option value="agm">Plomo-ácido AGM</option>
+          <option value="gel">Plomo-ácido GEL</option>
+          <option value="flooded_lead_acid">Plomo-ácido FLA (más barata)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Ciclos / año</label>
+        <input type="number" id="bat-cycles" value="350" step="50" min="100" max="365">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">
+      350 ciclos/año = uso off-grid típico (1/día). Grid-tied con respaldo: ~150–200.
+      Temperatura promedio se toma del análisis solar (lapse rate desde forecast).
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Reporte profesional (PDF)</div>
+    <div class="row">
+      <div class="field">
+        <label>Cliente / proyecto</label>
+        <input type="text" id="rep-client" placeholder="ej. Cooperativa Agraria Los Andes">
+      </div>
+      <div class="field">
+        <label>Analista / consultor</label>
+        <input type="text" id="rep-analyst" placeholder="ej. Ing. Juan Pérez · CIP 12345">
+      </div>
+      <div class="field">
+        <label>Empresa (opcional)</label>
+        <input type="text" id="rep-company" placeholder="ej. Solar Andes Consulting">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">
+      Estos datos aparecen en la portada del PDF. Botón "Generar PDF" disponible
+      después de "Analizar área".
+    </div>
   </div>
 
   <div class="card">
@@ -400,6 +460,7 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap">
     <button class="run" id="btn-run">Analizar área</button>
     <button class="run" id="btn-export" style="background:var(--bg2);color:var(--text);display:none">Exportar CSV</button>
+    <button class="run" id="btn-pdf" style="background:var(--green-mid);color:#fff;display:none">Generar PDF</button>
     <button class="run" id="btn-share" style="background:var(--bg2);color:var(--text);display:none">Copiar enlace</button>
     <span class="status" id="status">Configura el área y presiona analizar.</span>
   </div>
@@ -448,6 +509,9 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
       <div class="sc" id="sc-pump-energy" style="display:none"><div class="sc-l">Bombeo kWh/día</div><div class="sc-v" id="s-pump-energy">—</div><div class="sc-s" id="s-pump-energy-sub">P_eléctrico · η</div></div>
       <div class="sc" id="sc-pump-kwp" style="display:none"><div class="sc-l">PV requerido</div><div class="sc-v" id="s-pump-kwp">—</div><div class="sc-s" id="s-pump-kwp-sub">por mes crítico</div></div>
       <div class="sc" id="sc-pump-storage" style="display:none"><div class="sc-l">Tanque</div><div class="sc-v" id="s-pump-storage">—</div><div class="sc-s" id="s-pump-storage-sub">vs batería</div></div>
+      <div class="sc" id="sc-bat-cap" style="display:none"><div class="sc-l">Batería capacidad</div><div class="sc-v" id="s-bat-cap">—</div><div class="sc-s" id="s-bat-cap-sub">kWh bruto · útil</div></div>
+      <div class="sc" id="sc-bat-cost" style="display:none"><div class="sc-l">Batería CAPEX</div><div class="sc-v" id="s-bat-cost">—</div><div class="sc-s" id="s-bat-cost-sub">USD · química</div></div>
+      <div class="sc" id="sc-bat-life" style="display:none"><div class="sc-l">Batería vida</div><div class="sc-v" id="s-bat-life">—</div><div class="sc-s" id="s-bat-life-sub">años · LCOS</div></div>
     </div>
 
     <div class="tabs">
@@ -526,6 +590,8 @@ import { applySoiling, regionalFallback, withRetry, sourceAgreement, uncertainty
 import { solarEconomics, paybackCategory, PERU_DEFAULTS as ECON_DEFAULTS } from '../src/core/economics.js';
 import { TURBINE_PRESETS, logLawExtrapolate, capacityFromSeries, capacityFromMean, windCategory } from '../src/core/wind.js';
 import { pumpingAnalysis, waterFromCrop, CROP_WATER_NEEDS } from '../src/core/pumping.js';
+import { generateReport } from '../src/core/pdf-report.js';
+import { batteryAnalysis, recommendChemistry, BATTERY_CHEMISTRIES } from '../src/core/battery.js';
 import { haversine, SEASONS } from '../src/core/utils.js';
 
 /* ─────────── estado global ─────────── */
@@ -663,6 +729,16 @@ $('pump-enable').addEventListener('change', () => {
   if (state.results.length) renderStats();
 });
 
+/* ─────────── batería ─────────── */
+['bat-daily', 'bat-days', 'bat-chemistry', 'bat-cycles'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    if (state.results.length && $('bat-enable').checked) renderStats();
+  });
+});
+$('bat-enable').addEventListener('change', () => {
+  if (state.results.length) renderStats();
+});
+
 $('pump-from-crop').addEventListener('click', () => {
   const cropId = $('pump-crop').value;
   const ha = parseFloat($('pump-hectares').value) || 0;
@@ -685,6 +761,7 @@ $('pump-from-crop').addEventListener('click', () => {
 /* ─────────── analizar ─────────── */
 $('btn-run').addEventListener('click', runAnalysis);
 $('btn-export').addEventListener('click', exportCSV);
+$('btn-pdf').addEventListener('click', generatePDFReport);
 $('btn-share').addEventListener('click', copyShareLink);
 
 /* ─────────── wrappers cacheados ─────────── */
@@ -936,6 +1013,7 @@ async function runAnalysis() {
   reScore();
   $('main-stats').classList.remove('hidden');
   $('btn-export').style.display = 'inline-block';
+  $('btn-pdf').style.display = 'inline-block';
   $('btn-share').style.display = 'inline-block';
 
   $('status').textContent = 'Cargando condiciones en tiempo real…';
@@ -966,6 +1044,88 @@ function renderElevWarning(coverage) {
   } else {
     w.className = 'alg aw';
     w.innerHTML = `<strong>Cobertura de elevación parcial: ${pct} %</strong> — los puntos sin dato usan valores neutros para sombras y pendiente. Recomendado reanalizar más tarde.`;
+  }
+}
+
+/* ─────────── PDF report profesional ─────────── */
+async function generatePDFReport() {
+  if (!state.results.length) return;
+  $('btn-pdf').disabled = true;
+  const oldStatus = $('status').textContent;
+  $('status').textContent = 'Generando reporte PDF…';
+
+  try {
+    const top = state.results[0];
+    const kWp = parseFloat($('kwp').value) || 1;
+    const [m1, m2] = SEASONS[state.activeSeason];
+    const seasonMonths = m2 - m1 + 1;
+    const seasonLabels = ['Anual', 'Q1 ene–mar', 'Q2 abr–jun', 'Q3 jul–sep', 'Q4 oct–dic'];
+
+    const ctx = {
+      // Personalización
+      client: $('rep-client').value.trim(),
+      analyst: $('rep-analyst').value.trim(),
+      company: $('rep-company').value.trim(),
+      reportId: 'EK-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') +
+                '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
+
+      // Análisis
+      lat: parseFloat($('lat').value),
+      lng: parseFloat($('lng').value),
+      kWp,
+      seasonLabel: seasonLabels[state.activeSeason],
+      seasonMonths,
+      results: state.results,
+      regionInfo: state.regionInfo,
+      centerElev: state.baseElev,
+      centerKT: state.centerKT,
+      baseTemp: state.baseTemp,
+
+      // Económica
+      economics: state.economics,
+      economicsMode: $('econ-mode').selectedOptions[0]?.text || '—',
+      economicsParams: {
+        capexPerKwp: parseFloat($('econ-capex').value),
+        energyPrice: parseFloat($('econ-price').value),
+        discountRate: parseFloat($('econ-discount').value),
+        omRate: parseFloat($('econ-om').value),
+      },
+
+      // Eólico
+      windResult: state.windResult,
+
+      // Batería
+      battery: state.battery,
+      batteryAutoReason: state.batteryAutoReason,
+
+      // Bombeo
+      pumping: state.pumping,
+      pumpInputs: state.pumping ? {
+        dailyVolumeM3: parseFloat($('pump-flow').value),
+        staticHead: parseFloat($('pump-static').value),
+        length: parseFloat($('pump-length').value),
+        pressure: parseFloat($('pump-pressure').value),
+        hours: parseFloat($('pump-hours').value),
+      } : null,
+
+      // Chart embebido
+      chartCanvas: state.monthlyChart ? $('monthly-chart') : null,
+    };
+
+    // Asegurar que el chart está renderizado
+    if (!state.monthlyChart) buildMonthly();
+
+    const doc = await generateReport(ctx);
+    const filename = `enerku-prefactibilidad-${ctx.lat}_${ctx.lng}-${new Date().toISOString().slice(0, 10)}.pdf`;
+    doc.save(filename);
+
+    $('status').textContent = `PDF generado: ${filename}`;
+  } catch (err) {
+    console.error('[PDF]', err);
+    $('status').textContent = 'Error generando PDF: ' + (err.message || err);
+  } finally {
+    $('btn-pdf').disabled = false;
+    setTimeout(() => { if ($('status').textContent.startsWith('PDF generado')) $('status').textContent = oldStatus; }, 5000);
   }
 }
 
@@ -1009,6 +1169,9 @@ function exportCSV() {
     state.pumping
       ? `# bombeo: Q ${state.pumping.flowM3hr}m³/h · TDH ${state.pumping.tdh}m · P ${(state.pumping.electricKW*1000).toFixed(0)}W · ${state.pumping.dailyKwh}kWh/día · req ${state.pumping.requiredKwp}kWp · bomba ${state.pumping.pumpRec.primary?.name ?? 'n/a'} ($${state.pumping.pumpCostUSD ?? 'n/a'}) · tanque ${state.pumping.storage.tank.capacityM3}m³ ($${state.pumping.storage.tank.estimatedCostUSD})`
       : `# bombeo: no analizado`,
+    state.battery
+      ? `# batería: ${BATTERY_CHEMISTRIES[state.battery.selected.chemistry].shortName} · ${state.battery.selected.grossCapacityKwh}kWh bruto / ${state.battery.selected.usableCapacityKwh}kWh útil · CAPEX $${state.battery.selected.capexUSD} · LCOS $${state.battery.selected.lcos}/kWh · vida ${state.battery.selected.lifetime.expectedYears}a · ${state.battery.selected.replacements} reemplazos`
+      : `# batería: no analizada`,
   ];
   const csvRows = [
     ...meta,
@@ -1034,7 +1197,9 @@ const URL_FIELDS = ['lat', 'lng', 'radius', 'res', 'clat', 'clng', 'kwp', 'load-
                     'econ-mode', 'econ-price', 'econ-capex', 'econ-lifetime', 'econ-discount', 'econ-om',
                     'wind-turbine', 'wind-hub', 'wind-roughness',
                     'pump-flow', 'pump-static', 'pump-length', 'pump-pressure', 'pump-hours',
-                    'pump-autonomy', 'pump-diameter', 'pump-crop', 'pump-hectares', 'pump-irrigation'];
+                    'pump-autonomy', 'pump-diameter', 'pump-crop', 'pump-hectares', 'pump-irrigation',
+                    'bat-daily', 'bat-days', 'bat-chemistry', 'bat-cycles',
+                    'rep-client', 'rep-analyst', 'rep-company'];
 
 function pushUrlState() {
   try {
@@ -1049,6 +1214,7 @@ function pushUrlState() {
     params.set('xs', $('cross-source').checked ? '1' : '0');
     params.set('we', $('wind-enable').checked ? '1' : '0');
     params.set('pe', $('pump-enable').checked ? '1' : '0');
+    params.set('be', $('bat-enable').checked ? '1' : '0');
     history.replaceState(null, '', '#' + params.toString());
   } catch { /* navegador antiguo, ignorar */ }
 }
@@ -1086,6 +1252,9 @@ function loadUrlState() {
     }
     if (params.has('pe')) {
       $('pump-enable').checked = params.get('pe') === '1';
+    }
+    if (params.has('be')) {
+      $('bat-enable').checked = params.get('be') === '1';
     }
   } catch (e) {
     console.warn('URL state inválido:', e);
@@ -1245,6 +1414,75 @@ function renderStats() {
   renderEconomics(top, kWp);
   renderWind(kWp);
   renderPumping(top);
+  renderBattery(top);
+}
+
+/* ─────────── render: batería off-grid ─────────── */
+function renderBattery(top) {
+  const cards = ['sc-bat-cap', 'sc-bat-cost', 'sc-bat-life'];
+  if (!$('bat-enable').checked || !top) {
+    cards.forEach(id => $(id).style.display = 'none');
+    state.battery = null;
+    return;
+  }
+
+  const dailyKwh = parseFloat($('bat-daily').value);
+  const days = parseFloat($('bat-days').value);
+  const cycles = parseFloat($('bat-cycles').value);
+  let chemistry = $('bat-chemistry').value;
+
+  if (!dailyKwh || !days || !cycles) {
+    cards.forEach(id => $(id).style.display = 'none');
+    return;
+  }
+
+  // Si es 'auto', recomendar según contexto
+  if (chemistry === 'auto') {
+    const rec = recommendChemistry({
+      region: state.regionInfo?.region,
+      useCase: $('pump-enable').checked ? 'agricola' : 'residencial',
+    });
+    chemistry = rec.chemistry;
+    state.batteryAutoReason = rec.reason;
+  } else {
+    state.batteryAutoReason = null;
+  }
+
+  // Temperatura del análisis (estimada al punto óptimo)
+  const avgTempC = top.tempEst != null ? top.tempEst : (state.baseTemp ?? 20);
+
+  const economicsParams = {
+    discountRate: parseFloat($('econ-discount').value) / 100 || 0.08,
+    projectLifetime: parseFloat($('econ-lifetime').value) || 20,
+  };
+
+  const result = batteryAnalysis({
+    dailyKwh,
+    daysAutonomy: days,
+    avgTempC,
+    cyclesPerYear: cycles,
+    projectLifetime: economicsParams.projectLifetime,
+    discountRate: economicsParams.discountRate,
+  });
+  if (!result) {
+    cards.forEach(id => $(id).style.display = 'none');
+    return;
+  }
+
+  // Filtrar al chemistry elegido
+  const selected = result.options.find(o => o.chemistry === chemistry) || result.recommended;
+  state.battery = { ...result, selected, avgTempC };
+
+  cards.forEach(id => $(id).style.display = '');
+
+  $('s-bat-cap').textContent = selected.grossCapacityKwh + ' kWh';
+  $('s-bat-cap-sub').textContent = `útil ${selected.usableCapacityKwh} (DOD ${(selected.dodMax * 100).toFixed(0)}%) · η_RT ${(selected.roundTripEfficiency * 100).toFixed(0)}%`;
+
+  $('s-bat-cost').textContent = '$' + selected.capexUSD.toLocaleString('es-PE');
+  $('s-bat-cost-sub').textContent = `${BATTERY_CHEMISTRIES[selected.chemistry].shortName} · T ${avgTempC.toFixed(0)}°C × factor ${selected.temperatureFactor.toFixed(2)}`;
+
+  $('s-bat-life').textContent = selected.lifetime.expectedYears + 'a';
+  $('s-bat-life-sub').textContent = `LCOS $${selected.lcos}/kWh · limit ${selected.lifetime.limitedBy} · ${selected.replacements} reemplazos`;
 }
 
 /* ─────────── render: bombeo solar agrícola ─────────── */

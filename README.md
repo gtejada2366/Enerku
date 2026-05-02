@@ -39,10 +39,12 @@ Default: análisis de Cusco (lat -13.5319, lng -71.9675, radio 3 km, grilla 4×4
 - Pre-feasibility de proyectos rurales / agrícolas <$100 k de inversión
 - Dimensionamiento off-grid usando el mes crítico
 - **Bombeo solar agrícola completo**: caudal/altura → bomba + kWp + tanque + costo
+- **Sistema de baterías detallado**: 5 químicas comparadas con LCOS + lifetime
+- **Reporte PDF profesional**: portada con cliente + 6–10 páginas técnicas + firma
 - Estimar yield esperado en kWh/kWp/año con ±6.5 % de error promedio
 - Análisis económico (LCOE, payback, NPV, IRR) en 3 modos
 - Potencial eólico (5 turbinas, log-law extrapolation)
-- Exportar resultados (CSV) para reportes de proyecto
+- Exportar resultados (CSV o PDF) para reportes de proyecto
 
 ❌ **No sirve para**
 - Diseño de ingeniería formal de plantas grandes (PVSyst / Solargis Pro)
@@ -112,6 +114,8 @@ EnerKu/
 │       ├── economics.js        # LCOE + payback + NPV + IRR (3 modos: grid/diesel/PPA)
 │       ├── wind.js             # Capacity factor eólico + curvas de turbina + log-law
 │       ├── pumping.js          # Bombeo solar agrícola: TDH + bomba + tanque + cultivos
+│       ├── battery.js          # 5 químicas con LCOS + lifetime + recomendación auto
+│       ├── pdf-report.js       # Reporte profesional multi-página jsPDF
 │       ├── calibration.js      # SOILING_BY_REGION + LOO + COES + retry/proxy
 │       ├── cache.js            # localStorage TTL para PVGIS/ERA5/NASA
 │       └── utils.js            # haversine, SEASONS
