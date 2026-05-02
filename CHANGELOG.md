@@ -2,6 +2,61 @@
 
 Journey del desarrollo y decisiones clave del proyecto.
 
+## v0.8 — diésel híbrido + análisis de sensibilidad + multi-proyecto (2026-05-02)
+
+Tres features que convierten EnerKu de "calculadora técnica" a **plataforma
+de consultoría completa**.
+
+### Híbrido PV + Diésel (`src/core/diesel-hybrid.js`)
+
+Caso de uso #1 Perú rural: hoteles, mineras pequeñas, fundos, telecom — todos
+tienen genset diésel funcionando. La pregunta no es "¿conviene PV?" sino
+"¿cuántos kWp óptimos para minimizar el costo total a 20 años?".
+
+- Barre kWp de 0.5 a max y encuentra el **óptimo** (CAPEX + diésel residual descontado)
+- 2 modos: sin batería (PV cubre demanda diurna) / con batería (cubre noche también)
+- Inflación diésel configurable (default 4 %/año)
+- Output: ahorro L/año, $/año, % cobertura solar, payback, NPV ahorros, CO₂ evitado
+- 4 stat cards + sección dedicada en PDF report
+- Recomendación auto de eficiencia genset según capacidad (kWh/L)
+
+### Análisis de sensibilidad (`src/core/sensitivity.js`)
+
+**Tornado analysis**: cada variable (precio energía, CAPEX, yield, discount, O&M)
+se varía ±20 % manteniendo el resto fijo. Muestra cuáles inputs mueven más el NPV.
+
+**Monte Carlo**: 1000 simulaciones con todas las variables distribuidas
+normalmente (Box-Muller). Devuelve P10/P25/P50/P75/P90 + probabilidad NPV positivo.
+
+**Bankability verdict**: traducción a frase ejecutiva ("Bancabilidad ALTA — proyecto
+rentable en 95 % de escenarios").
+
+UI: nuevo tab "Sensibilidad" con tornado chart horizontal + 6 stat cards (P10/P50/P90 NPV,
+prob positivo, payback P50, IRR P50) + histograma de distribución NPV en Chart.js.
+
+Eleva el reporte de "estimación con un número" a "decisión informada con rangos" —
+es lo que bancos y financistas piden literalmente.
+
+### Multi-proyecto workspace (`src/core/projects.js`)
+
+Tu tío atiende 10–30 clientes/año. Hoy cada análisis se pierde si no exportás.
+Ahora:
+
+- **Guardar proyecto**: nombre + cliente + status + notas + todos los inputs (45 campos)
+- **Cargar proyecto**: rehidrata todo el state, listo para re-Analizar
+- **Lista colapsable** con badge de status (cotizado / en curso / cerrado / archivado)
+- **Meta summary** mostrado en lista: región, score, yield, payback, NPV
+- **Borrar** con confirmación
+- **Export workspace** completo a JSON (todos los proyectos)
+- **Import** desde JSON exportado (re-genera IDs para evitar colisión)
+- Persistencia en localStorage con índice + entries separadas
+
+UI integrada como `<details>` colapsable arriba de "Área de análisis". Al cargar
+un proyecto, el usuario sólo presiona "Analizar" — los resultados se rehidratan
+desde cache PVGIS (v0.5) → instantáneo si fue analizado antes.
+
+---
+
 ## v0.7 — reporte PDF profesional + baterías detalladas (2026-05-02)
 
 ### Reporte PDF profesional (`src/core/pdf-report.js`)

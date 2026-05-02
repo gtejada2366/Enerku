@@ -40,6 +40,9 @@ Default: análisis de Cusco (lat -13.5319, lng -71.9675, radio 3 km, grilla 4×4
 - Dimensionamiento off-grid usando el mes crítico
 - **Bombeo solar agrícola completo**: caudal/altura → bomba + kWp + tanque + costo
 - **Sistema de baterías detallado**: 5 químicas comparadas con LCOS + lifetime
+- **Híbrido PV + diésel**: kWp óptimo para reemplazar genset existente, ahorro L/año + $/año + CO₂
+- **Análisis de sensibilidad + Monte Carlo**: tornado chart + P10–P90 NPV + bankability verdict
+- **Workspace multi-proyecto**: guardar/cargar/comparar análisis por cliente con persistencia
 - **Reporte PDF profesional**: portada con cliente + 6–10 páginas técnicas + firma
 - Estimar yield esperado en kWh/kWp/año con ±6.5 % de error promedio
 - Análisis económico (LCOE, payback, NPV, IRR) en 3 modos
@@ -115,6 +118,9 @@ EnerKu/
 │       ├── wind.js             # Capacity factor eólico + curvas de turbina + log-law
 │       ├── pumping.js          # Bombeo solar agrícola: TDH + bomba + tanque + cultivos
 │       ├── battery.js          # 5 químicas con LCOS + lifetime + recomendación auto
+│       ├── diesel-hybrid.js    # Optimización kWp para reemplazar/hibridar genset diesel
+│       ├── sensitivity.js      # Tornado + Monte Carlo + bankability verdict
+│       ├── projects.js         # Workspace multi-proyecto en localStorage
 │       ├── pdf-report.js       # Reporte profesional multi-página jsPDF
 │       ├── calibration.js      # SOILING_BY_REGION + LOO + COES + retry/proxy
 │       ├── cache.js            # localStorage TTL para PVGIS/ERA5/NASA

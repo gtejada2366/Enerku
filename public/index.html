@@ -126,6 +126,48 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
   <h1>Solar Optimizer</h1>
   <p class="subtitle">Puntos óptimos para instalación de paneles solares — costa, sierra y selva del Perú</p>
 
+  <details class="card" id="projects-card">
+    <summary style="cursor:pointer;list-style:none">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="section-title" style="margin:0">Mis proyectos</span>
+        <span class="muted" id="projects-count" style="font-size:11px">0 guardados</span>
+      </div>
+    </summary>
+    <div style="margin-top:12px">
+      <div class="row">
+        <div class="field" style="flex:2">
+          <label>Nombre del proyecto actual</label>
+          <input type="text" id="proj-name" placeholder="ej. Bombeo Cooperativa Andina">
+        </div>
+        <div class="field">
+          <label>Estado</label>
+          <select id="proj-status">
+            <option value="cotizado">Cotizado</option>
+            <option value="en_curso">En curso</option>
+            <option value="cerrado">Cerrado</option>
+            <option value="archivado">Archivado</option>
+          </select>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end;flex:0 0 auto">
+          <button class="run" id="btn-proj-save" style="height:34px">Guardar</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="field" style="flex:1">
+          <label>Notas internas (opcional)</label>
+          <input type="text" id="proj-notes" placeholder="cualquier referencia interna">
+        </div>
+      </div>
+      <div id="projects-list" style="margin-top:12px;border-top:0.5px solid var(--border);padding-top:10px"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="run alt" id="btn-proj-export">Exportar workspace</button>
+        <button class="run alt" id="btn-proj-import">Importar JSON</button>
+        <input type="file" id="proj-import-file" accept=".json" style="display:none">
+        <span class="muted" id="proj-msg" style="margin-left:auto;align-self:center;font-size:11px"></span>
+      </div>
+    </div>
+  </details>
+
   <div class="card">
     <div class="section-title">Área de análisis</div>
     <div class="row">
@@ -159,6 +201,45 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
       </div>
     </div>
     <div id="sizing-banner" class="hidden" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Híbrido PV + Diésel (opcional) ⭐ caso de uso #1 Perú rural</div>
+    <div class="mode-row">
+      <label><input type="checkbox" id="diesel-enable"> Calcular reemplazo / hibridación de diésel existente</label>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Capacidad genset (kVA)</label>
+        <input type="number" id="diesel-capacity" value="10" step="1" min="0">
+      </div>
+      <div class="field">
+        <label>Demanda diaria (kWh/día)</label>
+        <input type="number" id="diesel-demand" value="20" step="1" min="0">
+      </div>
+      <div class="field">
+        <label>Costo diésel ($/L)</label>
+        <input type="number" id="diesel-cost" value="4.30" step="0.10" min="0">
+      </div>
+      <div class="field">
+        <label>Eficiencia genset (kWh/L)</label>
+        <input type="number" id="diesel-efficiency" value="3.5" step="0.1" min="2" max="5">
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="field" style="flex:0 0 200px">
+        <label><input type="checkbox" id="diesel-battery"> Incluir batería (mejora cobertura PV)</label>
+      </div>
+      <div class="field">
+        <label>Inflación diésel (%/año)</label>
+        <input type="number" id="diesel-escalation" value="4.0" step="0.5" min="0" max="15">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">
+      El sistema busca el <strong>kWp óptimo</strong> que minimiza el costo total
+      a 20 años (CAPEX PV + diésel residual descontado). Sin batería: PV cubre demanda diurna.
+      Con batería: PV + batería cubren parte de la noche también.
+    </div>
   </div>
 
   <div class="card">
@@ -512,12 +593,17 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
       <div class="sc" id="sc-bat-cap" style="display:none"><div class="sc-l">Batería capacidad</div><div class="sc-v" id="s-bat-cap">—</div><div class="sc-s" id="s-bat-cap-sub">kWh bruto · útil</div></div>
       <div class="sc" id="sc-bat-cost" style="display:none"><div class="sc-l">Batería CAPEX</div><div class="sc-v" id="s-bat-cost">—</div><div class="sc-s" id="s-bat-cost-sub">USD · química</div></div>
       <div class="sc" id="sc-bat-life" style="display:none"><div class="sc-l">Batería vida</div><div class="sc-v" id="s-bat-life">—</div><div class="sc-s" id="s-bat-life-sub">años · LCOS</div></div>
+      <div class="sc" id="sc-diesel-kwp" style="display:none"><div class="sc-l">PV óptimo</div><div class="sc-v" id="s-diesel-kwp">—</div><div class="sc-s" id="s-diesel-kwp-sub">kWp · solar fraction</div></div>
+      <div class="sc" id="sc-diesel-savings" style="display:none"><div class="sc-l">Ahorro diésel</div><div class="sc-v" id="s-diesel-savings">—</div><div class="sc-s" id="s-diesel-savings-sub">L/año · USD/año</div></div>
+      <div class="sc" id="sc-diesel-payback" style="display:none"><div class="sc-l">Payback diésel</div><div class="sc-v" id="s-diesel-payback">—</div><div class="sc-s" id="s-diesel-payback-sub">años · NPV ahorros</div></div>
+      <div class="sc" id="sc-diesel-co2" style="display:none"><div class="sc-l">CO₂ evitado</div><div class="sc-v" id="s-diesel-co2">—</div><div class="sc-s" id="s-diesel-co2-sub">tons/año · 20 años</div></div>
     </div>
 
     <div class="tabs">
       <button class="tab on" data-tab="map">Mapa</button>
       <button class="tab" data-tab="table">Ranking</button>
       <button class="tab" data-tab="chart">Mensual</button>
+      <button class="tab" data-tab="sensitivity">Sensibilidad</button>
     </div>
 
     <div id="tab-map">
@@ -551,6 +637,13 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
+    </div>
+
+    <div id="tab-sensitivity" class="hidden">
+      <div class="tip">Análisis de sensibilidad: cómo varía el NPV cuando cambian las variables clave ±20 %. Útil para identificar riesgos del proyecto.</div>
+      <div id="sens-tornado-wrap" style="position:relative;width:100%;height:240px"><canvas id="tornado-chart"></canvas></div>
+      <div id="sens-mc-result" style="margin-top:14px"></div>
+      <div id="sens-mc-hist" style="position:relative;width:100%;height:180px;margin-top:10px;display:none"><canvas id="mc-hist-chart"></canvas></div>
     </div>
 
     <div id="tab-chart" class="hidden">
@@ -592,6 +685,9 @@ import { TURBINE_PRESETS, logLawExtrapolate, capacityFromSeries, capacityFromMea
 import { pumpingAnalysis, waterFromCrop, CROP_WATER_NEEDS } from '../src/core/pumping.js';
 import { generateReport } from '../src/core/pdf-report.js';
 import { batteryAnalysis, recommendChemistry, BATTERY_CHEMISTRIES } from '../src/core/battery.js';
+import { dieselHybridAnalysis, recommendGensetEfficiency, DIESEL_DEFAULTS } from '../src/core/diesel-hybrid.js';
+import { tornadoAnalysis, monteCarloAnalysis, bankabilityVerdict, SENSITIVITY_VARS } from '../src/core/sensitivity.js';
+import { listProjects, saveProject, loadProject, deleteProject, exportWorkspace, importWorkspace, buildMetaSummary, workspaceStats } from '../src/core/projects.js';
 import { haversine, SEASONS } from '../src/core/utils.js';
 
 /* ─────────── estado global ─────────── */
@@ -674,12 +770,13 @@ document.querySelectorAll('.tab').forEach(btn => {
 });
 
 function showTab(t) {
-  ['map', 'table', 'chart'].forEach(x => {
+  ['map', 'table', 'chart', 'sensitivity'].forEach(x => {
     $(`tab-${x}`).classList.toggle('hidden', x !== t);
   });
   document.querySelectorAll('.tab').forEach(el => el.classList.toggle('on', el.dataset.tab === t));
   if (t === 'map') drawMap();
   if (t === 'chart') buildMonthly();
+  if (t === 'sensitivity') buildSensitivity();
 }
 
 /* ─────────── inputs de sistema ─────────── */
@@ -737,6 +834,22 @@ $('pump-enable').addEventListener('change', () => {
 });
 $('bat-enable').addEventListener('change', () => {
   if (state.results.length) renderStats();
+});
+
+/* ─────────── diesel híbrido ─────────── */
+['diesel-capacity', 'diesel-demand', 'diesel-cost', 'diesel-efficiency',
+ 'diesel-escalation', 'diesel-battery'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    if (state.results.length && $('diesel-enable').checked) renderStats();
+  });
+});
+$('diesel-enable').addEventListener('change', () => {
+  if (state.results.length) renderStats();
+});
+// Recomendar eficiencia genset al cambiar capacidad
+$('diesel-capacity').addEventListener('change', e => {
+  const cap = parseFloat(e.target.value);
+  if (cap > 0) $('diesel-efficiency').value = recommendGensetEfficiency(cap).toFixed(1);
 });
 
 $('pump-from-crop').addEventListener('click', () => {
@@ -1047,6 +1160,191 @@ function renderElevWarning(coverage) {
   }
 }
 
+/* ─────────── multi-proyecto workspace ─────────── */
+const PROJECT_INPUT_FIELDS = [
+  'lat', 'lng', 'radius', 'res', 'clat', 'clng', 'kwp', 'load-kwh', 'tilt', 'aspect',
+  'econ-mode', 'econ-price', 'econ-capex', 'econ-lifetime', 'econ-discount', 'econ-om',
+  'wind-turbine', 'wind-hub', 'wind-roughness',
+  'pump-flow', 'pump-static', 'pump-length', 'pump-pressure', 'pump-hours',
+  'pump-autonomy', 'pump-diameter', 'pump-crop', 'pump-hectares', 'pump-irrigation',
+  'bat-daily', 'bat-days', 'bat-chemistry', 'bat-cycles',
+  'diesel-capacity', 'diesel-demand', 'diesel-cost', 'diesel-efficiency', 'diesel-escalation',
+  'rep-client', 'rep-analyst', 'rep-company',
+];
+const PROJECT_TOGGLE_FIELDS = [
+  'auto-preset', 'tilt-auto', 'cross-source', 'wind-enable',
+  'pump-enable', 'bat-enable', 'diesel-enable', 'diesel-battery',
+];
+
+function captureCurrentInputs() {
+  const inputs = {};
+  for (const id of PROJECT_INPUT_FIELDS) {
+    const el = $(id);
+    if (el) inputs[id] = el.value;
+  }
+  for (const id of PROJECT_TOGGLE_FIELDS) {
+    const el = $(id);
+    if (el) inputs[id] = el.checked;
+  }
+  inputs._season = state.activeSeason;
+  return inputs;
+}
+
+function applyInputs(inputs) {
+  if (!inputs) return;
+  for (const id of PROJECT_INPUT_FIELDS) {
+    if (inputs[id] !== undefined && $(id)) $(id).value = inputs[id];
+  }
+  for (const id of PROJECT_TOGGLE_FIELDS) {
+    if (inputs[id] !== undefined && $(id)) $(id).checked = inputs[id];
+  }
+  if (inputs._season != null) {
+    state.activeSeason = inputs._season;
+    document.querySelectorAll('.stab').forEach(b =>
+      b.classList.toggle('on', parseInt(b.dataset.season) === state.activeSeason)
+    );
+  }
+  // Sync derived UI states
+  if ($('tilt-auto').checked) {
+    $('tilt').disabled = true;
+    $('aspect').disabled = true;
+  }
+  document.querySelectorAll('input[type=range][data-w]').forEach(inp => inp.disabled = $('auto-preset').checked);
+}
+
+function refreshProjectsList() {
+  const projs = listProjects();
+  const stats = workspaceStats();
+  $('projects-count').textContent = `${projs.length} guardado${projs.length === 1 ? '' : 's'} · ${(stats.bytes / 1024).toFixed(1)} KB`;
+  if (!projs.length) {
+    $('projects-list').innerHTML = '<div class="muted" style="font-size:11px;text-align:center;padding:10px">Aún no hay proyectos guardados. Configurá un análisis y dale "Guardar" arriba.</div>';
+    return;
+  }
+  const statusBadge = (s) => {
+    const map = { cotizado: 'bi', en_curso: 'bm', cerrado: 'bg', archivado: 'bl' };
+    return `<span class="bx ${map[s] || 'bi'}">${s.replace('_', ' ')}</span>`;
+  };
+  $('projects-list').innerHTML = projs.map(p => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border);gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(p.name || '(sin nombre)')}</div>
+        <div class="muted" style="font-size:11px">${escapeHtml(p.client || '—')} · ${new Date(p.updatedAt).toLocaleDateString('es-PE')} ${statusBadge(p.status || 'cotizado')}</div>
+        ${p.metaSummary ? `<div class="muted" style="font-size:10px;margin-top:2px">
+          ${p.metaSummary.region || '—'} · score ${p.metaSummary.bestScore || '—'} · yield ${p.metaSummary.bestYield || '—'} kWh/kWp
+          ${p.metaSummary.payback ? '· payback ' + p.metaSummary.payback + 'a' : ''}
+        </div>` : ''}
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="run alt" data-load="${p.id}" style="padding:4px 10px;font-size:11px;height:auto">Cargar</button>
+        <button class="run alt" data-del="${p.id}" style="padding:4px 10px;font-size:11px;height:auto;color:var(--red)">×</button>
+      </div>
+    </div>
+  `).join('');
+  // Listeners
+  $('projects-list').querySelectorAll('[data-load]').forEach(b => {
+    b.addEventListener('click', () => projectLoad(b.dataset.load));
+  });
+  $('projects-list').querySelectorAll('[data-del]').forEach(b => {
+    b.addEventListener('click', () => projectDelete(b.dataset.del));
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function projectSave() {
+  const name = $('proj-name').value.trim();
+  if (!name) {
+    $('proj-msg').textContent = 'Ingresá un nombre.';
+    setTimeout(() => $('proj-msg').textContent = '', 3000);
+    return;
+  }
+  const project = {
+    id: state.currentProjectId || null,
+    name,
+    client: $('rep-client').value.trim(),
+    notes: $('proj-notes').value.trim(),
+    status: $('proj-status').value || 'cotizado',
+    inputs: captureCurrentInputs(),
+    metaSummary: state.results.length ? buildMetaSummary(state) : null,
+  };
+
+  const id = saveProject(project);
+  if (id) {
+    state.currentProjectId = id;
+    $('proj-msg').textContent = `Proyecto "${name}" guardado.`;
+    setTimeout(() => $('proj-msg').textContent = '', 3000);
+    refreshProjectsList();
+  } else {
+    $('proj-msg').textContent = 'Error guardando proyecto.';
+  }
+}
+
+function projectLoad(id) {
+  const proj = loadProject(id);
+  if (!proj) {
+    $('proj-msg').textContent = 'Proyecto no encontrado.';
+    return;
+  }
+  state.currentProjectId = proj.id;
+  $('proj-name').value = proj.name || '';
+  $('proj-notes').value = proj.notes || '';
+  $('proj-status').value = proj.status || 'cotizado';
+  applyInputs(proj.inputs);
+  // Re-trigger UI updates dependent on inputs
+  syncW();
+  $('proj-msg').textContent = `"${proj.name}" cargado. Pulsá "Analizar área" para regenerar.`;
+  setTimeout(() => $('proj-msg').textContent = '', 5000);
+}
+
+function projectDelete(id) {
+  const proj = loadProject(id);
+  if (!proj) return;
+  if (!confirm(`¿Borrar proyecto "${proj.name}"? Esta acción no se puede deshacer.`)) return;
+  deleteProject(id);
+  if (state.currentProjectId === id) state.currentProjectId = null;
+  refreshProjectsList();
+}
+
+function projectExport() {
+  const json = exportWorkspace();
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `enerku-workspace-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  $('proj-msg').textContent = 'Workspace exportado.';
+}
+
+function projectImport() {
+  $('proj-import-file').click();
+}
+
+$('proj-import-file').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  const result = importWorkspace(text);
+  if (result.ok) {
+    $('proj-msg').textContent = `Importados ${result.imported}/${result.total} proyectos.`;
+    refreshProjectsList();
+  } else {
+    $('proj-msg').textContent = 'Error: ' + result.error;
+  }
+  e.target.value = '';
+});
+
+$('btn-proj-save').addEventListener('click', projectSave);
+$('btn-proj-export').addEventListener('click', projectExport);
+$('btn-proj-import').addEventListener('click', projectImport);
+
+refreshProjectsList();
+
 /* ─────────── PDF report profesional ─────────── */
 async function generatePDFReport() {
   if (!state.results.length) return;
@@ -1097,6 +1395,17 @@ async function generatePDFReport() {
       // Batería
       battery: state.battery,
       batteryAutoReason: state.batteryAutoReason,
+
+      // Diesel híbrido
+      diesel: state.diesel,
+      dieselInputs: state.diesel ? {
+        gensetCapacityKVA: parseFloat($('diesel-capacity').value),
+        dailyDemandKwh: parseFloat($('diesel-demand').value),
+        fuelCost: parseFloat($('diesel-cost').value),
+        efficiency: parseFloat($('diesel-efficiency').value),
+        escalation: parseFloat($('diesel-escalation').value),
+        withBattery: $('diesel-battery').checked,
+      } : null,
 
       // Bombeo
       pumping: state.pumping,
@@ -1172,6 +1481,9 @@ function exportCSV() {
     state.battery
       ? `# batería: ${BATTERY_CHEMISTRIES[state.battery.selected.chemistry].shortName} · ${state.battery.selected.grossCapacityKwh}kWh bruto / ${state.battery.selected.usableCapacityKwh}kWh útil · CAPEX $${state.battery.selected.capexUSD} · LCOS $${state.battery.selected.lcos}/kWh · vida ${state.battery.selected.lifetime.expectedYears}a · ${state.battery.selected.replacements} reemplazos`
       : `# batería: no analizada`,
+    state.diesel
+      ? `# diésel híbrido: PV óptimo ${state.diesel.optimal.kwp}kWp · ahorra ${state.diesel.optimal.annualLitersSaved}L/año ($${state.diesel.optimal.annualCostSaved}) · solar fraction ${state.diesel.optimal.solarFraction}% · payback ${state.diesel.optimal.simplePaybackYears}a · NPV $${state.diesel.optimal.npvSavings} · CO2 ${state.diesel.optimal.annualCO2SavedKg}kg/año`
+      : `# diésel híbrido: no analizado`,
   ];
   const csvRows = [
     ...meta,
@@ -1199,6 +1511,7 @@ const URL_FIELDS = ['lat', 'lng', 'radius', 'res', 'clat', 'clng', 'kwp', 'load-
                     'pump-flow', 'pump-static', 'pump-length', 'pump-pressure', 'pump-hours',
                     'pump-autonomy', 'pump-diameter', 'pump-crop', 'pump-hectares', 'pump-irrigation',
                     'bat-daily', 'bat-days', 'bat-chemistry', 'bat-cycles',
+                    'diesel-capacity', 'diesel-demand', 'diesel-cost', 'diesel-efficiency', 'diesel-escalation',
                     'rep-client', 'rep-analyst', 'rep-company'];
 
 function pushUrlState() {
@@ -1215,6 +1528,8 @@ function pushUrlState() {
     params.set('we', $('wind-enable').checked ? '1' : '0');
     params.set('pe', $('pump-enable').checked ? '1' : '0');
     params.set('be', $('bat-enable').checked ? '1' : '0');
+    params.set('de', $('diesel-enable').checked ? '1' : '0');
+    params.set('db', $('diesel-battery').checked ? '1' : '0');
     history.replaceState(null, '', '#' + params.toString());
   } catch { /* navegador antiguo, ignorar */ }
 }
@@ -1255,6 +1570,12 @@ function loadUrlState() {
     }
     if (params.has('be')) {
       $('bat-enable').checked = params.get('be') === '1';
+    }
+    if (params.has('de')) {
+      $('diesel-enable').checked = params.get('de') === '1';
+    }
+    if (params.has('db')) {
+      $('diesel-battery').checked = params.get('db') === '1';
     }
   } catch (e) {
     console.warn('URL state inválido:', e);
@@ -1415,6 +1736,67 @@ function renderStats() {
   renderWind(kWp);
   renderPumping(top);
   renderBattery(top);
+  renderDiesel(top);
+}
+
+/* ─────────── render: híbrido PV + diésel ─────────── */
+function renderDiesel(top) {
+  const cards = ['sc-diesel-kwp', 'sc-diesel-savings', 'sc-diesel-payback', 'sc-diesel-co2'];
+  if (!$('diesel-enable').checked || !top || !top.worst) {
+    cards.forEach(id => $(id).style.display = 'none');
+    state.diesel = null;
+    return;
+  }
+
+  const dailyDemand = parseFloat($('diesel-demand').value);
+  const fuelCost = parseFloat($('diesel-cost').value);
+  const efficiency = parseFloat($('diesel-efficiency').value);
+  const escalation = parseFloat($('diesel-escalation').value) / 100;
+  const withBattery = $('diesel-battery').checked;
+  const capexPerKwp = parseFloat($('econ-capex').value) || 1000;
+  const lifetimeYears = parseFloat($('econ-lifetime').value) || 20;
+  const discountRate = parseFloat($('econ-discount').value) / 100 || 0.08;
+
+  if (!dailyDemand || !fuelCost || !efficiency) {
+    cards.forEach(id => $(id).style.display = 'none');
+    return;
+  }
+
+  // Si batería habilitada, usa la capacidad útil de ese análisis
+  const batteryUsableKwh = withBattery && state.battery
+    ? state.battery.selected.usableCapacityKwh
+    : 0;
+
+  const result = dieselHybridAnalysis({
+    dailyDemandKwh: dailyDemand,
+    solarYieldKwhPerKwpPerDay: top.worst.dailyYield,
+    capexPerKwpUSD: capexPerKwp,
+    lifetimeYears, discountRate,
+    efficiency, fuelCostUSD: fuelCost,
+    fuelEscalation: escalation,
+    withBattery, batteryUsableKwh,
+  });
+  if (!result) {
+    cards.forEach(id => $(id).style.display = 'none');
+    return;
+  }
+  state.diesel = result;
+
+  cards.forEach(id => $(id).style.display = '');
+
+  const opt = result.optimal;
+  $('s-diesel-kwp').textContent = opt.kwp + ' kWp';
+  $('s-diesel-kwp-sub').textContent = `solar cubre ${opt.solarFraction}% · CAPEX $${opt.capex.toLocaleString('es-PE')}`;
+
+  $('s-diesel-savings').textContent = opt.annualLitersSaved.toLocaleString('es-PE') + ' L';
+  $('s-diesel-savings-sub').textContent = `$${opt.annualCostSaved.toLocaleString('es-PE')}/año · ahorra ${opt.savingsRatio}% del costo diésel`;
+
+  $('s-diesel-payback').textContent = opt.simplePaybackYears != null ? opt.simplePaybackYears + 'a' : '—';
+  $('s-diesel-payback-sub').textContent = `NPV ${opt.npvSavings >= 0 ? '+' : ''}$${opt.npvSavings.toLocaleString('es-PE')} a ${lifetimeYears} años`;
+
+  const co2Tons = opt.annualCO2SavedKg / 1000;
+  $('s-diesel-co2').textContent = co2Tons.toFixed(2) + ' t';
+  $('s-diesel-co2-sub').textContent = `${(co2Tons * lifetimeYears).toFixed(1)} t en ${lifetimeYears} años`;
 }
 
 /* ─────────── render: batería off-grid ─────────── */
@@ -1855,6 +2237,108 @@ function buildTable() {
     </tr>`;
   });
   tbody.innerHTML = rows.join('');
+}
+
+/* ─────────── render: análisis de sensibilidad ─────────── */
+let tornadoChartInstance = null;
+let mcHistChartInstance = null;
+
+function buildSensitivity() {
+  if (!state.results.length || !state.economics) return;
+  const top = state.results[0];
+  const kWp = parseFloat($('kwp').value) || 1;
+  const [m1, m2] = SEASONS[state.activeSeason];
+
+  const baseParams = {
+    kWp,
+    annualEnergyKwhPerKwp: top.irr * (12 / (m2 - m1 + 1)),
+    capexPerKwp: parseFloat($('econ-capex').value),
+    energyPrice: parseFloat($('econ-price').value),
+    lifetimeYears: parseFloat($('econ-lifetime').value),
+    discountRate: parseFloat($('econ-discount').value) / 100,
+    omRate: parseFloat($('econ-om').value) / 100,
+  };
+
+  const tornado = tornadoAnalysis(baseParams);
+  const mc = monteCarloAnalysis(baseParams, 1000);
+  state.sensitivity = { tornado, mc, baseParams };
+
+  // Tornado chart (horizontal bar centrado en NPV base)
+  const ctxT = $('tornado-chart').getContext('2d');
+  if (tornadoChartInstance) tornadoChartInstance.destroy();
+  const labels = tornado.variables.map(v => v.label);
+  const lows = tornado.variables.map(v => v.lowDelta);
+  const highs = tornado.variables.map(v => v.highDelta);
+  tornadoChartInstance = new Chart(ctxT, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '-20%', data: lows, backgroundColor: '#F09595', borderRadius: 3 },
+        { label: '+20%', data: highs, backgroundColor: '#3B6D11', borderRadius: 3 },
+      ],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'bottom' },
+        title: { display: true, text: `Δ NPV vs base ($${tornado.baseNPV.toLocaleString('es-PE')})` },
+      },
+      scales: {
+        x: { ticks: { callback: v => '$' + Math.round(v / 1000) + 'k' } },
+        y: { ticks: { font: { size: 10 } } },
+      },
+    },
+  });
+
+  // Monte Carlo result + bankability verdict
+  const verdict = bankabilityVerdict(mc);
+  const verdictColor = {
+    high: 'ag', 'medium-high': 'ag', medium: 'aw', low: 'ab', 'very-low': 'ab',
+  }[verdict.level] || 'aw';
+
+  $('sens-mc-result').innerHTML = `
+    <div class="alg ${verdictColor}" style="margin-bottom:10px"><strong>${verdict.message}</strong></div>
+    <div class="metrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px">
+      <div class="sc"><div class="sc-l">P10 NPV</div><div class="sc-v">$${(mc.npv.P10/1000).toFixed(1)}k</div><div class="sc-s">peor 10%</div></div>
+      <div class="sc"><div class="sc-l">P50 NPV</div><div class="sc-v">$${(mc.npv.P50/1000).toFixed(1)}k</div><div class="sc-s">mediana</div></div>
+      <div class="sc"><div class="sc-l">P90 NPV</div><div class="sc-v">$${(mc.npv.P90/1000).toFixed(1)}k</div><div class="sc-s">mejor 10%</div></div>
+      <div class="sc"><div class="sc-l">Prob. NPV+</div><div class="sc-v">${mc.npv.probPositive}%</div><div class="sc-s">de ${mc.iterations} sims</div></div>
+      ${mc.payback ? `<div class="sc"><div class="sc-l">Payback P50</div><div class="sc-v">${mc.payback.P50}a</div><div class="sc-s">P10–P90: ${mc.payback.P10}–${mc.payback.P90}a</div></div>` : ''}
+      ${mc.irr ? `<div class="sc"><div class="sc-l">IRR P50</div><div class="sc-v">${mc.irr.P50}%</div><div class="sc-s">P10–P90: ${mc.irr.P10}–${mc.irr.P90}%</div></div>` : ''}
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-top:8px">
+      <strong>Cómo leer</strong>: el Monte Carlo simuló ${mc.iterations} escenarios variando todas las entradas
+      con distribución normal (SD ~10%). El valor "P50" es la mediana, "P10" peor caso razonable, "P90" mejor caso.
+      Probabilidad NPV positivo &gt;80% se considera bancable; &lt;60% es proyecto frágil.
+    </div>
+  `;
+
+  // Histograma del NPV
+  $('sens-mc-hist').style.display = 'block';
+  const ctxH = $('mc-hist-chart').getContext('2d');
+  if (mcHistChartInstance) mcHistChartInstance.destroy();
+  mcHistChartInstance = new Chart(ctxH, {
+    type: 'bar',
+    data: {
+      labels: mc.histogram.map(b => '$' + (b.binStart / 1000).toFixed(0) + 'k'),
+      datasets: [{
+        label: 'Frecuencia',
+        data: mc.histogram.map(b => b.count),
+        backgroundColor: mc.histogram.map(b => b.binStart >= 0 ? '#3B6D11' : '#E24B4A'),
+        borderRadius: 2,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, title: { display: true, text: 'Distribución NPV (Monte Carlo)' } },
+      scales: {
+        x: { ticks: { font: { size: 9 }, autoSkip: true, maxTicksLimit: 10 } },
+        y: { display: false },
+      },
+    },
+  });
 }
 
 /* ─────────── render: gráfico mensual ─────────── */

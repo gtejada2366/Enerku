@@ -207,6 +207,15 @@ export async function generateReport(ctx) {
       ['Batería: vida útil', `${sel.lifetime.expectedYears} años (${sel.replacements} reemplazos)`],
     );
   }
+  if (ctx.diesel) {
+    const opt = ctx.diesel.optimal;
+    summary.push(
+      ['Diésel: PV óptimo', `${opt.kwp} kWp · cubre ${opt.solarFraction}% demanda`],
+      ['Diésel: ahorro anual', `${opt.annualLitersSaved.toLocaleString('es-PE')} L · $${opt.annualCostSaved.toLocaleString('es-PE')} USD/año`],
+      ['Diésel: payback / NPV', `${opt.simplePaybackYears}a · NPV $${opt.npvSavings.toLocaleString('es-PE')}`],
+      ['Diésel: CO₂ evitado', `${(opt.annualCO2SavedKg / 1000).toFixed(2)} ton/año`],
+    );
+  }
   tableKV(summary);
 
   // ════════════════ PÁGINA 2+: ANÁLISIS REGIONAL ════════════════
@@ -374,6 +383,53 @@ export async function generateReport(ctx) {
       compRows,
       { 0: { cellWidth: 50 } }
     );
+  }
+
+  // ════════════════ DIESEL HÍBRIDO ════════════════
+  if (ctx.diesel) {
+    addPage();
+    h1('5b. Híbrido PV + Diésel');
+    p('Análisis de reemplazo / hibridación de un genset diésel existente con sistema solar fotovoltaico. El kWp óptimo minimiza el costo total a 20 años (CAPEX PV + diésel residual descontado).', { color: COLORS.text2 });
+    space(2);
+
+    const opt = ctx.diesel.optimal;
+    const base = ctx.diesel.baseline;
+
+    h2('Configuración del genset existente');
+    tableKV([
+      ['Capacidad nominal', `${ctx.dieselInputs.gensetCapacityKVA} kVA`],
+      ['Eficiencia', `${ctx.dieselInputs.efficiency} kWh/L`],
+      ['Demanda diaria', `${ctx.dieselInputs.dailyDemandKwh} kWh/día`],
+      ['Costo diésel', `$${ctx.dieselInputs.fuelCost}/L`],
+      ['Inflación diésel asumida', `${ctx.dieselInputs.escalation}%/año`],
+      ['Batería incluida', ctx.dieselInputs.withBattery ? 'sí' : 'no'],
+    ]);
+
+    h2('Baseline — solo diésel (sin PV)');
+    tableKV([
+      ['Consumo diésel anual', `${base.annualLitersDiesel.toLocaleString('es-PE')} L`],
+      ['Costo diésel anual', `$${base.annualCostDiesel.toLocaleString('es-PE')} USD`],
+      ['Costo total NPV 20 años', `$${base.npvCost20yr.toLocaleString('es-PE')} USD`],
+      ['Emisiones CO₂', `~${Math.round(base.annualLitersDiesel * 2.68 / 1000)} ton/año`],
+    ]);
+
+    h2('Sistema híbrido recomendado');
+    tableKV([
+      ['PV óptimo (minimiza costo total)', `${opt.kwp} kWp`],
+      ['CAPEX PV', `$${opt.capex.toLocaleString('es-PE')} USD`],
+      ['Cobertura solar', `${opt.solarFraction}% de la demanda diaria`],
+      ['Energía solar usada/año', `${opt.annualSolarKwh.toLocaleString('es-PE')} kWh`],
+      ['Diésel residual', `${opt.annualDieselLiters.toLocaleString('es-PE')} L/año ($${opt.annualDieselCost.toLocaleString('es-PE')})`],
+      ['Litros ahorrados/año', `${opt.annualLitersSaved.toLocaleString('es-PE')} L`],
+      ['Costo ahorrado/año', `$${opt.annualCostSaved.toLocaleString('es-PE')} USD`],
+      ['Reducción de costo diésel', `${opt.savingsRatio}%`],
+      ['Payback (sólo PV vs diésel)', opt.simplePaybackYears != null ? `${opt.simplePaybackYears} años` : 'no rentable'],
+      ['NPV ahorros 20 años', `${opt.npvSavings >= 0 ? '+' : ''}$${opt.npvSavings.toLocaleString('es-PE')} USD`],
+      ['CO₂ evitado/año', `${(opt.annualCO2SavedKg / 1000).toFixed(2)} toneladas`],
+      ['CO₂ evitado total 20 años', `~${(opt.annualCO2SavedKg * 20 / 1000).toFixed(1)} toneladas`],
+    ]);
+
+    p('Nota: el "kWp óptimo" no es el máximo ni el mínimo, sino el que minimiza el costo total descontado a 20 años. Más kWp reduce diésel pero aumenta CAPEX; menos kWp baja CAPEX pero mantiene el gasto de diésel.', { color: COLORS.text3, size: 8 });
   }
 
   // ════════════════ EÓLICO ════════════════
