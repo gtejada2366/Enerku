@@ -22,6 +22,7 @@ import { regionLabel, regionDescription } from './region.js';
 import { absoluteCategory } from './score.js';
 import { paybackCategory } from './economics.js';
 import { totalEnergy } from './energy.js';
+import { groupByCategory, CATEGORY_LABELS, formatCurrency } from './bom.js';
 
 const COLORS = {
   primary: [39, 80, 10],       // var(--green)
@@ -214,6 +215,14 @@ export async function generateReport(ctx) {
       ['Diésel: ahorro anual', `${opt.annualLitersSaved.toLocaleString('es-PE')} L · $${opt.annualCostSaved.toLocaleString('es-PE')} USD/año`],
       ['Diésel: payback / NPV', `${opt.simplePaybackYears}a · NPV $${opt.npvSavings.toLocaleString('es-PE')}`],
       ['Diésel: CO₂ evitado', `${(opt.annualCO2SavedKg / 1000).toFixed(2)} ton/año`],
+    );
+  }
+  if (ctx.bom) {
+    const s = ctx.bom.summary;
+    summary.push(
+      ['Cotización: total USD', `$${s.totalUSD.toLocaleString('es-PE')} (con IGV)`],
+      ['Cotización: total S/.', `S/. ${s.totalPEN.toLocaleString('es-PE')}`],
+      ['Cotización: precio Wp', `$${s.pricePerWp}/Wp llave en mano`],
     );
   }
   tableKV(summary);
@@ -446,6 +455,80 @@ export async function generateReport(ctx) {
       ['Horas útiles/año (sobre cut-in)', `${ctx.windResult.hoursAboveCutIn} h`],
       ['Híbrido solar + eólico', `${(top.irr * ctx.kWp * (12 / ctx.seasonMonths) + ctx.windResult.annualKwh).toLocaleString('es-PE', {maximumFractionDigits: 0})} kWh/año`],
     ]);
+  }
+
+  // ════════════════ COTIZACIÓN FORMAL ════════════════
+  if (ctx.bom) {
+    addPage();
+    h1('5c. Cotización formal — propuesta económica');
+    p('Cotización detallada con BOM completo, mano de obra, servicios y márgenes. Precios referenciales Perú 2026 (proveedores PROENERGÍA, AUTOSOLAR PERÚ, ECOSOLAR). Sujeto a confirmación con orden de compra firme.', { color: COLORS.text2 });
+    space(2);
+
+    const groups = groupByCategory(ctx.bom);
+    for (const [catKey, group] of Object.entries(groups)) {
+      h2(CATEGORY_LABELS[catKey] || catKey);
+      const rows = group.items.map(it => [
+        it.name,
+        `${it.quantity} ${it.unit}`,
+        `$${it.unitPrice}`,
+        `$${it.subtotal.toLocaleString('es-PE')}`,
+      ]);
+      tableData(
+        ['Descripción', 'Cantidad', 'P. Unit', 'Subtotal'],
+        rows,
+        { 0: { cellWidth: 95 }, 1: { cellWidth: 25 }, 2: { cellWidth: 22 }, 3: { cellWidth: 28 } }
+      );
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...COLORS.primary);
+      doc.text(`Subtotal ${CATEGORY_LABELS[catKey] || catKey}: $${group.subtotal.toLocaleString('es-PE')} USD`,
+        210 - 18, state.y - 2, { align: 'right' });
+      state.y += 4;
+    }
+
+    h2('Servicios');
+    tableData(
+      ['Descripción', 'Subtotal'],
+      ctx.bom.services.map(sv => [sv.name, `$${sv.subtotal.toLocaleString('es-PE')}`]),
+      { 0: { cellWidth: 'auto' }, 1: { cellWidth: 30 } }
+    );
+
+    h2('Resumen económico');
+    const s = ctx.bom.summary;
+    const fxRate = s.exchangeRate;
+    tableKV([
+      ['Materiales', `$${s.materialsSubtotalUSD.toLocaleString('es-PE')} USD · S/. ${Math.round(s.materialsSubtotalUSD * fxRate).toLocaleString('es-PE')}`],
+      ['Mano de obra', `$${s.laborTotalUSD.toLocaleString('es-PE')} USD ($${(s.laborTotalUSD / (s.kWp * 1000)).toFixed(2)}/Wp)`],
+      ['Servicios (trámites, pruebas, logística)', `$${s.servicesTotalUSD.toLocaleString('es-PE')} USD`],
+      ...(s.regionalSurchargeUSD > 0 ? [['Recargo regional (sierra/selva)', `+$${s.regionalSurchargeUSD.toLocaleString('es-PE')} USD`]] : []),
+      [`Utilidad ${s.profitMarginPct}%`, `$${s.profitUSD.toLocaleString('es-PE')} USD`],
+      ['Subtotal', `$${s.subtotalUSD.toLocaleString('es-PE')} USD`],
+      ['IGV 18%', `$${s.igvUSD.toLocaleString('es-PE')} USD`],
+      ['TOTAL CON IGV', `$${s.totalUSD.toLocaleString('es-PE')} USD · S/. ${s.totalPEN.toLocaleString('es-PE')}`],
+      ['Precio por Wp instalado', `$${s.pricePerWp}/Wp`],
+      ['Tipo de cambio referencial', `S/. ${fxRate} / USD`],
+    ]);
+
+    space(3);
+    h2('Términos comerciales');
+    p('• Validez de la cotización: 30 días calendario.', { size: 9 });
+    p('• Forma de pago sugerida: 50 % al firmar contrato + 30 % al inicio de obra + 20 % en puesta en marcha.', { size: 9 });
+    p('• Plazo de ejecución estimado: 4–8 semanas según disponibilidad de equipos en stock.', { size: 9 });
+    p('• Garantías: paneles 12 años producto + 25 años performance lineal · inversor 10 años · estructura 10 años · mano de obra 1 año.', { size: 9 });
+    p('• Excluye: ampliación tablero principal si requiere mayor capacidad, obra civil mayor, ampliación de acometida.', { size: 9 });
+    p('• Esta cotización es referencial; precios sujetos a confirmación con cotización firme del proveedor.', { size: 9, color: COLORS.text3 });
+    space(3);
+
+    // Bloque firma cliente
+    state.y = Math.max(state.y, 297 - 50);
+    doc.setDrawColor(...COLORS.text2);
+    doc.line(M, state.y, M + 70, state.y);
+    doc.line(M + 90, state.y, M + 160, state.y);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...COLORS.text2);
+    doc.text('Aceptación cliente (firma + DNI)', M, state.y + 5);
+    doc.text('Por la empresa (firma + sello)', M + 90, state.y + 5);
   }
 
   // ════════════════ LIMITACIONES + DISCLAIMERS ════════════════

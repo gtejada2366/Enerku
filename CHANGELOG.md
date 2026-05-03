@@ -2,6 +2,95 @@
 
 Journey del desarrollo y decisiones clave del proyecto.
 
+## v0.9 — BOM + cotización formal Perú 2026 (2026-05-03)
+
+Convierte EnerKu de **"estudio técnico"** a **"propuesta cerrada lista para
+firmar"**. La feature que justifica subir tarifas 2-3× según el plan de Sesión 1.
+
+### Bill of Materials (`src/core/bom.js`)
+
+**Catálogo de precios Perú 2026** (~50 componentes referenciados a distribuidores
+mayoristas: PROENERGÍA, AUTOSOLAR PERÚ, ECOSOLAR, SUNNYWAY):
+- Paneles 450/550 Wp tier-1
+- Inversores string 3/5/10/20/50 kW + híbridos 5/10 kW
+- Estructuras: techo inclinado/plano, suelo, tracker 1-eje
+- Baterías LFP 5/10/15 kWh + AGM/FLA 2.4 kWh
+- Cableado DC/AC todos los calibres comunes (10/8/6/4 AWG)
+- Tubería PVC SAP 3/4″ a 1½″
+- Protecciones: combiner DC, DPS, breakers, fusibles, paneles eléctricos
+- Bombeo: 4 tipos de bombas + controlador MPPT
+- Tanques PE 1k/2.5k/5k/10k litros
+- ATS (transferencia automática) para diésel híbrido
+- Monitoreo, medidores bidireccionales, puesta a tierra
+
+**Generador inteligente** (`generateBOM`) que adapta el BOM al sistema completo:
+- Calcula # paneles según kWp + Wp por panel
+- Selecciona inversor óptimo (string/híbrido) según kWp + batería
+- Dimensiona cableado DC/AC según corriente con caída de tensión <2%
+- Selecciona protecciones por # de strings
+- Integra el sistema de bombeo (de pumping.js) si está activo
+- Integra ATS si hay diésel híbrido
+- Selecciona batería del catálogo según capacidad + química
+- Ajusta tanque de agua al volumen del bombeo
+
+**Estructura financiera completa**:
+1. Materiales (suma de items)
+2. Mano de obra ($/Wp configurable, default $0.10)
+3. Servicios (trámites OSINERGMIN, pruebas, logística)
+4. Recargo regional (+10% sierra/selva por flete)
+5. Margen utilidad configurable (default 20%, rango 15-30%)
+6. Subtotal
+7. IGV 18%
+8. **Total USD + total PEN** (con FX configurable)
+9. Precio por Wp llave en mano
+
+### UI
+
+Card "Cotización formal" con 9 inputs:
+- Tipo de montaje (4 opciones)
+- Margen utilidad %
+- Mano de obra $/Wp
+- Tipo de cambio S/./USD
+- Distancia inversor → tablero
+- Wp del panel preferido
+- Toggles: trámites, monitoreo, medidor bidireccional
+
+**4 stat cards** con totales:
+- Cotización total (USD + PEN con IGV)
+- Precio por Wp llave en mano
+- # ítems y categorías
+- Utilidad bruta del proyecto
+
+### CSV export extendido
+
+Tras los puntos de la grilla, añade:
+- BOM detallado (categoría, descripción, cantidad, unidad, precio unit, subtotal, proveedor)
+- Servicios desglosados
+- Resumen económico (materiales / labor / servicios / utilidad / IGV / TOTAL en USD + PEN)
+
+### PDF report — sección 5c "Cotización formal"
+
+Sección dedicada con:
+- Items agrupados por categoría con subtotal por grupo
+- Tabla de servicios
+- Resumen económico completo (materiales, MO, servicios, recargo, utilidad, IGV, TOTAL)
+- Términos comerciales: validez 30 días, plan de pagos sugerido (50/30/20),
+  plazo 4-8 semanas, garantías estándar
+- Bloque de firmas: cliente (firma+DNI) y empresa (firma+sello)
+
+### Pricing impact comercial
+
+| Antes | Ahora |
+|---|---|
+| "Estudio de pre-feasibility con yield, payback, NPV" | "Propuesta cerrada con BOM + precio total firmable" |
+| Cliente debe contratar a alguien para cotizar | Cliente firma directamente |
+| Ticket consultoría: $300-500 USD | Ticket consultoría + propuesta: $1000-1500 USD |
+| Margen 50-70% | Margen 80-90% |
+
+URL state preserva todos los campos quote-*.
+
+---
+
 ## v0.8 — diésel híbrido + análisis de sensibilidad + multi-proyecto (2026-05-02)
 
 Tres features que convierten EnerKu de "calculadora técnica" a **plataforma

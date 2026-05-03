@@ -279,6 +279,59 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
   </div>
 
   <div class="card">
+    <div class="section-title">Cotización formal (BOM + propuesta cerrada) ⭐ permite cobrar 2-3× más</div>
+    <div class="mode-row">
+      <label><input type="checkbox" id="quote-enable" checked> Generar BOM + cotización con margen, mano de obra e IGV</label>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Tipo de montaje</label>
+        <select id="quote-mounting">
+          <option value="roof_tile">Techo inclinado (calamina/teja)</option>
+          <option value="roof_flat">Techo plano (lastre + ángulo)</option>
+          <option value="ground">Suelo (hincado)</option>
+          <option value="tracker_1axis">Tracker 1-eje (utility)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Margen utilidad (%)</label>
+        <input type="number" id="quote-margin" value="20" min="0" max="50" step="1">
+      </div>
+      <div class="field">
+        <label>Mano de obra ($/Wp)</label>
+        <input type="number" id="quote-labor" value="0.10" min="0.05" max="0.30" step="0.01">
+      </div>
+      <div class="field">
+        <label>Tipo de cambio (S/./USD)</label>
+        <input type="number" id="quote-fx" value="3.70" min="3.0" max="5.0" step="0.05">
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="field">
+        <label>Distancia inversor → tablero (m)</label>
+        <input type="number" id="quote-distance" value="20" min="5" max="500" step="5">
+      </div>
+      <div class="field">
+        <label>Potencia panel preferida</label>
+        <select id="quote-panel">
+          <option value="550">550 Wp tier-1 (default 2026)</option>
+          <option value="450">450 Wp económico</option>
+        </select>
+      </div>
+      <div class="field" style="display:flex;gap:14px;align-items:flex-end">
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="quote-permits" checked> Trámites OSINERGMIN</label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="quote-monitoring" checked> Monitoreo</label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="quote-meter"> Medidor bidireccional</label>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">
+      Precios referenciales mercado Perú 2026 (PROENERGÍA, AUTOSOLAR PERÚ, ECOSOLAR).
+      Ajustá margen según tu mercado: 15 % bajo, 20 % estándar, 25-30 % premium.
+      El recargo regional (+10 %) se aplica auto si el sitio es sierra o selva.
+    </div>
+  </div>
+
+  <div class="card">
     <div class="section-title">Reporte profesional (PDF)</div>
     <div class="row">
       <div class="field">
@@ -597,6 +650,10 @@ footer{margin-top:32px;font-size:11px;color:var(--text3);text-align:center;paddi
       <div class="sc" id="sc-diesel-savings" style="display:none"><div class="sc-l">Ahorro diésel</div><div class="sc-v" id="s-diesel-savings">—</div><div class="sc-s" id="s-diesel-savings-sub">L/año · USD/año</div></div>
       <div class="sc" id="sc-diesel-payback" style="display:none"><div class="sc-l">Payback diésel</div><div class="sc-v" id="s-diesel-payback">—</div><div class="sc-s" id="s-diesel-payback-sub">años · NPV ahorros</div></div>
       <div class="sc" id="sc-diesel-co2" style="display:none"><div class="sc-l">CO₂ evitado</div><div class="sc-v" id="s-diesel-co2">—</div><div class="sc-s" id="s-diesel-co2-sub">tons/año · 20 años</div></div>
+      <div class="sc" id="sc-quote-total" style="display:none"><div class="sc-l">Cotización total</div><div class="sc-v" id="s-quote-total">—</div><div class="sc-s" id="s-quote-total-sub">USD · S/. con IGV</div></div>
+      <div class="sc" id="sc-quote-perwp" style="display:none"><div class="sc-l">Precio por Wp</div><div class="sc-v" id="s-quote-perwp">—</div><div class="sc-s" id="s-quote-perwp-sub">$/Wp instalado</div></div>
+      <div class="sc" id="sc-quote-items" style="display:none"><div class="sc-l">BOM ítems</div><div class="sc-v" id="s-quote-items">—</div><div class="sc-s" id="s-quote-items-sub">categorías · proveedores</div></div>
+      <div class="sc" id="sc-quote-margin" style="display:none"><div class="sc-l">Utilidad bruta</div><div class="sc-v" id="s-quote-margin">—</div><div class="sc-s" id="s-quote-margin-sub">USD · margen %</div></div>
     </div>
 
     <div class="tabs">
@@ -688,6 +745,7 @@ import { batteryAnalysis, recommendChemistry, BATTERY_CHEMISTRIES } from '../src
 import { dieselHybridAnalysis, recommendGensetEfficiency, DIESEL_DEFAULTS } from '../src/core/diesel-hybrid.js';
 import { tornadoAnalysis, monteCarloAnalysis, bankabilityVerdict, SENSITIVITY_VARS } from '../src/core/sensitivity.js';
 import { listProjects, saveProject, loadProject, deleteProject, exportWorkspace, importWorkspace, buildMetaSummary, workspaceStats } from '../src/core/projects.js';
+import { generateBOM, groupByCategory, CATEGORY_LABELS, formatCurrency } from '../src/core/bom.js';
 import { haversine, SEASONS } from '../src/core/utils.js';
 
 /* ─────────── estado global ─────────── */
@@ -844,6 +902,17 @@ $('bat-enable').addEventListener('change', () => {
   });
 });
 $('diesel-enable').addEventListener('change', () => {
+  if (state.results.length) renderStats();
+});
+
+/* ─────────── cotización (BOM) ─────────── */
+['quote-mounting', 'quote-margin', 'quote-labor', 'quote-fx',
+ 'quote-distance', 'quote-panel', 'quote-permits', 'quote-monitoring', 'quote-meter'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    if (state.results.length && $('quote-enable').checked) renderStats();
+  });
+});
+$('quote-enable').addEventListener('change', () => {
   if (state.results.length) renderStats();
 });
 // Recomendar eficiencia genset al cambiar capacidad
@@ -1407,6 +1476,9 @@ async function generatePDFReport() {
         withBattery: $('diesel-battery').checked,
       } : null,
 
+      // Cotización BOM
+      bom: state.bom,
+
       // Bombeo
       pumping: state.pumping,
       pumpInputs: state.pumping ? {
@@ -1484,6 +1556,9 @@ function exportCSV() {
     state.diesel
       ? `# diésel híbrido: PV óptimo ${state.diesel.optimal.kwp}kWp · ahorra ${state.diesel.optimal.annualLitersSaved}L/año ($${state.diesel.optimal.annualCostSaved}) · solar fraction ${state.diesel.optimal.solarFraction}% · payback ${state.diesel.optimal.simplePaybackYears}a · NPV $${state.diesel.optimal.npvSavings} · CO2 ${state.diesel.optimal.annualCO2SavedKg}kg/año`
       : `# diésel híbrido: no analizado`,
+    state.bom
+      ? `# cotización: ${state.bom.items.length} items · materiales $${state.bom.summary.materialsSubtotalUSD} + mano obra $${state.bom.summary.laborTotalUSD} + servicios $${state.bom.summary.servicesTotalUSD} + utilidad ${state.bom.summary.profitMarginPct}% ($${state.bom.summary.profitUSD}) + IGV $${state.bom.summary.igvUSD} = TOTAL $${state.bom.summary.totalUSD} USD / S/. ${state.bom.summary.totalPEN} (precio $${state.bom.summary.pricePerWp}/Wp)`
+      : `# cotización: no generada`,
   ];
   const csvRows = [
     ...meta,
@@ -1493,6 +1568,39 @@ function exportCSV() {
       return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
     }).join(',')),
   ];
+
+  // Bloque BOM extendido (si hay cotización)
+  if (state.bom) {
+    const escCsv = v => {
+      const s = String(v);
+      return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    csvRows.push('', '# BOM detallado', 'categoria,descripcion,cantidad,unidad,precio_unit_usd,subtotal_usd,proveedor');
+    for (const item of state.bom.items) {
+      csvRows.push([
+        escCsv(item.category),
+        escCsv(item.name),
+        item.quantity,
+        item.unit,
+        item.unitPrice,
+        item.subtotal,
+        escCsv(item.supplier || ''),
+      ].join(','));
+    }
+    csvRows.push('', '# Servicios', 'descripcion,subtotal_usd');
+    for (const sv of state.bom.services) csvRows.push(`${escCsv(sv.name)},${sv.subtotal}`);
+    const s = state.bom.summary;
+    csvRows.push('', '# Resumen cotización', 'concepto,USD,PEN');
+    csvRows.push(`Materiales,${s.materialsSubtotalUSD},${Math.round(s.materialsSubtotalUSD * s.exchangeRate)}`);
+    csvRows.push(`Mano de obra,${s.laborTotalUSD},${Math.round(s.laborTotalUSD * s.exchangeRate)}`);
+    csvRows.push(`Servicios,${s.servicesTotalUSD},${Math.round(s.servicesTotalUSD * s.exchangeRate)}`);
+    if (s.regionalSurchargeUSD) csvRows.push(`Recargo regional,${s.regionalSurchargeUSD},${Math.round(s.regionalSurchargeUSD * s.exchangeRate)}`);
+    csvRows.push(`Utilidad ${s.profitMarginPct}%,${s.profitUSD},${Math.round(s.profitUSD * s.exchangeRate)}`);
+    csvRows.push(`Subtotal,${s.subtotalUSD},${Math.round(s.subtotalUSD * s.exchangeRate)}`);
+    csvRows.push(`IGV 18%,${s.igvUSD},${Math.round(s.igvUSD * s.exchangeRate)}`);
+    csvRows.push(`TOTAL,${s.totalUSD},${s.totalPEN}`);
+    csvRows.push(`Precio por Wp ($),${s.pricePerWp},${Math.round(s.pricePerWp * s.exchangeRate * 100) / 100}`);
+  }
   const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1512,6 +1620,7 @@ const URL_FIELDS = ['lat', 'lng', 'radius', 'res', 'clat', 'clng', 'kwp', 'load-
                     'pump-autonomy', 'pump-diameter', 'pump-crop', 'pump-hectares', 'pump-irrigation',
                     'bat-daily', 'bat-days', 'bat-chemistry', 'bat-cycles',
                     'diesel-capacity', 'diesel-demand', 'diesel-cost', 'diesel-efficiency', 'diesel-escalation',
+                    'quote-mounting', 'quote-margin', 'quote-labor', 'quote-fx', 'quote-distance', 'quote-panel',
                     'rep-client', 'rep-analyst', 'rep-company'];
 
 function pushUrlState() {
@@ -1530,6 +1639,10 @@ function pushUrlState() {
     params.set('be', $('bat-enable').checked ? '1' : '0');
     params.set('de', $('diesel-enable').checked ? '1' : '0');
     params.set('db', $('diesel-battery').checked ? '1' : '0');
+    params.set('qe', $('quote-enable').checked ? '1' : '0');
+    params.set('qp', $('quote-permits').checked ? '1' : '0');
+    params.set('qm', $('quote-monitoring').checked ? '1' : '0');
+    params.set('qb', $('quote-meter').checked ? '1' : '0');
     history.replaceState(null, '', '#' + params.toString());
   } catch { /* navegador antiguo, ignorar */ }
 }
@@ -1577,6 +1690,10 @@ function loadUrlState() {
     if (params.has('db')) {
       $('diesel-battery').checked = params.get('db') === '1';
     }
+    if (params.has('qe')) $('quote-enable').checked = params.get('qe') === '1';
+    if (params.has('qp')) $('quote-permits').checked = params.get('qp') === '1';
+    if (params.has('qm')) $('quote-monitoring').checked = params.get('qm') === '1';
+    if (params.has('qb')) $('quote-meter').checked = params.get('qb') === '1';
   } catch (e) {
     console.warn('URL state inválido:', e);
   }
@@ -1737,6 +1854,57 @@ function renderStats() {
   renderPumping(top);
   renderBattery(top);
   renderDiesel(top);
+  renderQuote(top, kWp);
+}
+
+/* ─────────── render: cotización formal (BOM + propuesta) ─────────── */
+function renderQuote(top, kWp) {
+  const cards = ['sc-quote-total', 'sc-quote-perwp', 'sc-quote-items', 'sc-quote-margin'];
+  if (!$('quote-enable').checked || !top || !kWp) {
+    cards.forEach(id => $(id).style.display = 'none');
+    state.bom = null;
+    return;
+  }
+
+  const params = {
+    kWp,
+    batteryKwh: $('bat-enable').checked && state.battery ? state.battery.selected.grossCapacityKwh : 0,
+    batteryChemistry: state.battery ? state.battery.selected.chemistry : 'lifepo4',
+    pumping: $('pump-enable').checked ? state.pumping : null,
+    diesel: $('diesel-enable').checked ? state.diesel : null,
+    mountingType: $('quote-mounting').value,
+    distanceToTableroM: parseFloat($('quote-distance').value) || 20,
+    region: state.regionInfo?.region || 'costa',
+    profitMargin: (parseFloat($('quote-margin').value) || 20) / 100,
+    laborPerWp: parseFloat($('quote-labor').value) || 0.10,
+    exchangeRate: parseFloat($('quote-fx').value) || 3.7,
+    panelWattage: parseInt($('quote-panel').value) || 550,
+    includePermits: $('quote-permits').checked,
+    includeMonitoring: $('quote-monitoring').checked,
+    includeBidirectionalMeter: $('quote-meter').checked,
+  };
+
+  const bom = generateBOM(params);
+  if (!bom) {
+    cards.forEach(id => $(id).style.display = 'none');
+    return;
+  }
+  state.bom = bom;
+  cards.forEach(id => $(id).style.display = '');
+
+  const s = bom.summary;
+  $('s-quote-total').innerHTML = `$${s.totalUSD.toLocaleString('es-PE')}<span style="font-size:11px;color:var(--text2)"> / S/. ${s.totalPEN.toLocaleString('es-PE')}</span>`;
+  $('s-quote-total-sub').textContent = `incluye IGV 18% · ${s.kWp} kWp · ${s.panelsCount} paneles ${s.panelWattage}Wp`;
+
+  $('s-quote-perwp').textContent = `$${s.pricePerWp}`;
+  $('s-quote-perwp-sub').textContent = `$/Wp llave en mano · región ${state.regionInfo?.region || '—'}`;
+
+  const groups = groupByCategory(bom);
+  $('s-quote-items').textContent = bom.items.length + ' items';
+  $('s-quote-items-sub').textContent = `${Object.keys(groups).length} categorías + ${bom.services.length} servicios`;
+
+  $('s-quote-margin').textContent = `$${s.profitUSD.toLocaleString('es-PE')}`;
+  $('s-quote-margin-sub').textContent = `${s.profitMarginPct}% sobre subtotal`;
 }
 
 /* ─────────── render: híbrido PV + diésel ─────────── */

@@ -43,6 +43,7 @@ Default: análisis de Cusco (lat -13.5319, lng -71.9675, radio 3 km, grilla 4×4
 - **Híbrido PV + diésel**: kWp óptimo para reemplazar genset existente, ahorro L/año + $/año + CO₂
 - **Análisis de sensibilidad + Monte Carlo**: tornado chart + P10–P90 NPV + bankability verdict
 - **Workspace multi-proyecto**: guardar/cargar/comparar análisis por cliente con persistencia
+- **BOM + Cotización formal Perú 2026**: ~50 componentes con precios, mano de obra, IGV → propuesta lista para firmar
 - **Reporte PDF profesional**: portada con cliente + 6–10 páginas técnicas + firma
 - Estimar yield esperado en kWh/kWp/año con ±6.5 % de error promedio
 - Análisis económico (LCOE, payback, NPV, IRR) en 3 modos
@@ -121,6 +122,7 @@ EnerKu/
 │       ├── diesel-hybrid.js    # Optimización kWp para reemplazar/hibridar genset diesel
 │       ├── sensitivity.js      # Tornado + Monte Carlo + bankability verdict
 │       ├── projects.js         # Workspace multi-proyecto en localStorage
+│       ├── bom.js              # Bill of Materials + cotización Perú 2026 (~50 componentes)
 │       ├── pdf-report.js       # Reporte profesional multi-página jsPDF
 │       ├── calibration.js      # SOILING_BY_REGION + LOO + COES + retry/proxy
 │       ├── cache.js            # localStorage TTL para PVGIS/ERA5/NASA
