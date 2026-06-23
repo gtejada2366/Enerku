@@ -1,0 +1,58 @@
+name: ingest-nightly
+
+# Cron diario a las 06:00 UTC = 01:00 hora Perú. Para que esté listo cuando
+# Gonzalo/Luis prendan la laptop.
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      anio:
+        description: 'Año específico (ej. 2024). Vacío = año actual.'
+        required: false
+      desde:
+        description: 'Backfill desde año (ej. 2022). Si se setea, --anio se ignora.'
+        required: false
+      hasta:
+        description: 'Backfill hasta año (ej. 2025).'
+        required: false
+      caps:
+        description: 'Capítulos a procesar, separados por coma (default 1,2,3,4,5).'
+        required: false
+        default: '1,2,3,4,5'
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ingest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ENERKU_SCHEMA: enerku
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.desde }}" ]; then
+            ARGS="$ARGS --desde=${{ github.event.inputs.desde }}"
+            if [ -n "${{ github.event.inputs.hasta }}" ]; then
+              ARGS="$ARGS --hasta=${{ github.event.inputs.hasta }}"
+            fi
+          elif [ -n "${{ github.event.inputs.anio }}" ]; then
+            ARGS="--anio=${{ github.event.inputs.anio }}"
+          fi
+          if [ -n "${{ github.event.inputs.caps }}" ]; then
+            ARGS="$ARGS --cap=${{ github.event.inputs.caps }}"
+          fi
+          echo "Running: node scripts/ingest-anual.js $ARGS"
+          node scripts/ingest-anual.js $ARGS
