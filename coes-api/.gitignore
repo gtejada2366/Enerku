@@ -1,0 +1,41 @@
+# Dependencias
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Entorno
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Coverage / tests
+coverage/
+.nyc_output/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Builds
+dist/
+build/
+*.tgz
+
+# Datos descargados localmente durante pruebas (los Excel del SEIN no van al repo)
+data/
+downloads/
+tmp/
+*.xlsx
+*.xls
+!sql/*.xlsx
+
+# Outputs de scripts ad-hoc
+out/
